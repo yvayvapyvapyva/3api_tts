@@ -989,7 +989,7 @@ ymaps3.ready.then(async () => {
             const playNext = () => {
                 APP.navAudio.onended = null;
                 if (p.comm && p.comm.trim()) {
-                    APP.navAudio.onended = () => { APP.navAudio.onended = null; startSim(); };
+                    APP._commentAudio.onended = () => { APP._commentAudio.onended = null; startSim(); };
                     playComment(p.comm);
                 } else {
                     startSim();
