@@ -79,6 +79,18 @@
     </div>
 </div>
 
+<div id="znakiModal" class="instruction-overlay" onclick="if(event.target===this) closeZnakiSelector()">
+    <div class="instruction-sheet" style="max-width:450px">
+        <div class="instruction-header">
+            <span class="instruction-title">Выберите знак</span>
+            <button class="instruction-close" onclick="closeZnakiSelector()">✕</button>
+        </div>
+        <div class="instruction-body">
+            <div class="znaki-grid" id="znakiGrid"></div>
+        </div>
+    </div>
+</div>
+
 <script>
 (function (global) {
   const byId = (id) => document.getElementById(id);
@@ -108,6 +120,9 @@ let map, points = [], cur = null, isAdd = false, isDrawing = false, isAddingInfo
 let historyStack = [], historyIndex = -1, lastSavedSnapshot = "[]", toastTimer = null;
 let pendingDeletePoint = null;
 let pendingDeleteSingle = false;
+let pendingInfoCoords = null;
+
+const ZNAKI = ['2.1.png','2.4.png','3.24.png','3.27.png','3.31.png','4.1.1.png','5.15.2.png','5.5.png','6.16.png'];
 
 window.USER_ID = TG_ACTIVE ? TG.getId() : VK.getId();
 window.USER_NAME = TG_ACTIVE ? TG.getName() : VK.getName();
@@ -381,8 +396,8 @@ ymaps.ready(async () => {
     initGeolocation();
     map.events.add('click', e => {
         if(isAddingInfo && activePoint) {
-            const coords = e.get('coords');
-            addInfoPoint([f6(coords[0]), f6(coords[1])], activePoint);
+            pendingInfoCoords = [f6(e.get('coords')[0]), f6(e.get('coords')[1])];
+            openZnakiSelector();
             return;
         }
         if(isAdd && tempNewPointData) {
@@ -835,60 +850,17 @@ function addP(coords, data = null, silent = false) {
     return p;
 }
 
-function getInfoLabelSvg(text) {
-    const fSize = 12;
-    const lineH = 16;
-    const padX = 8;
-    const lines = text.split('\n');
-    const maxLine = lines.reduce((a, l) => l.length > a ? l.length : a, 0);
-    const textW = Math.min(maxLine * 8, 150);
-    const bodyW = Math.max(textW + 8, 24);
-    const bodyH = Math.max(lines.length * lineH, 20);
-    const w = Math.round(bodyW + padX * 2);
-    const cx = Math.round(w / 2);
-    const bodyX = padX, bodyY = 1, bodyB = bodyY + bodyH;
-    const tailW = 5, tailH = 7;
-    const svgH = bodyB + tailH + 1;
-    const tspan = (l, i) => {
-        const e = l.replace(/["&<>]/g, c => ({'"':'&quot;','&':'&amp;','<':'&lt;','>':'&gt;'})[c]);
-        return `<tspan x="${cx}" dy="${i ? lineH : 0}">${e}</tspan>`;
-    };
-    const tbody = lines.map((l, i) => tspan(l, i)).join('');
-    const baseY = Math.round(bodyY + (bodyH - lines.length * lineH) / 2 + lineH * 0.7);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${svgH}">
-        <defs>
-            <filter id="s" x="-4" y="-4" width="${w+8}" height="${svgH+8}"><feGaussianBlur in="SourceAlpha" stdDeviation="2"/><feOffset dx="0" dy="1"/><feComponentTransfer><feFuncA type="linear" slope="0.25"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-            <filter id="ts" x="-2" y="-2" width="${w+4}" height="${svgH+4}"><feGaussianBlur in="SourceGraphic" stdDeviation="1.5"/></filter>
-        </defs>
-        <g filter="url(#s)">
-            <rect x="${bodyX}" y="${bodyY}" width="${bodyW}" height="${bodyH}" rx="8" fill="rgba(20,20,25,0.5)" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
-            <polygon points="${cx-tailW},${bodyB} ${cx},${bodyB+tailH} ${cx+tailW},${bodyB}" fill="rgba(20,20,25,0.5)"/>
-        </g>
-        <text x="${cx}" y="${baseY}" font-size="${fSize}" font-family="Arial" fill="rgba(0,0,0,0.5)" text-anchor="middle" filter="url(#ts)">${tbody}</text>
-        <text x="${cx}" y="${baseY}" font-size="${fSize}" font-family="Arial" fill="#ffffff" text-anchor="middle">${tbody}</text>
-    </svg>`;
-    return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
-}
-
 function renderInfoPlacemarks(p) {
     clearInfoPlacemarks(p);
     if (!p.info || !p.info.length) return;
     p.info.forEach((inf, idx) => {
         const coords = [inf.lat, inf.lon];
-        const txt = inf.text || '';
-        const lines = txt.split('\n');
-        const maxLine = lines.reduce((a, l) => l.length > a ? l.length : a, 0);
-        const tw = Math.min(maxLine * 8, 150);
-        const bodyW = Math.max(tw + 8, 24);
-        const svgW = Math.round(bodyW + 16);
-        const lineH = 16;
-        const bodyH = Math.max(lines.length * lineH, 20);
-        const svgH = bodyH + 9;
+        const img = inf.image || '';
         const pm = new ymaps.Placemark(coords, {}, {
             iconLayout: 'default#image',
-            iconImageHref: getInfoLabelSvg(txt),
-            iconImageSize: [svgW, svgH],
-            iconImageOffset: [-Math.round(svgW/2), -(svgH - 1)],
+            iconImageHref: `znaki/${img}`,
+            iconImageSize: [32, 32],
+            iconImageOffset: [-16, -16],
             zIndex: 900
         });
         pm.events.add('click', () => editInfoPoint(p, idx));
@@ -925,18 +897,9 @@ function rebuildInfoPointList(listEl, p, card) {
     p.info.forEach((inf, idx) => {
         const row = document.createElement('div');
         row.className = 'info-point-row';
-        row.innerHTML = `<textarea class="info-text-input" placeholder="Текст"></textarea>
+        const imgFile = inf.image || '';
+        row.innerHTML = `<img class="info-point-img" src="znaki/${imgFile}" alt="${imgFile}"><span class="info-point-filename">${imgFile}</span>
 <button class="info-del-btn" data-idx="${idx}">✕</button>`;
-        const inp = row.querySelector('.info-text-input');
-        inp.value = inf.text;
-        const autoHeight = () => { inp.style.height = 'auto'; inp.style.height = inp.scrollHeight + 'px'; };
-        inp.addEventListener('input', () => {
-            p.info[idx].text = inp.value;
-            renderInfoPlacemarks(p);
-            updateSaveState();
-            autoHeight();
-        });
-        setTimeout(autoHeight, 0);
         row.querySelector('.info-del-btn').addEventListener('click', () => {
             deleteInfoPoint(idx, p);
             rebuildInfoPointList(listEl, p, card);
@@ -945,8 +908,8 @@ function rebuildInfoPointList(listEl, p, card) {
     });
 }
 
-function addInfoPoint(coords, p) {
-    p.info.push({ lat: coords[0], lon: coords[1], text: '' });
+function addInfoPoint(coords, p, image) {
+    p.info.push({ lat: coords[0], lon: coords[1], image: image || '' });
     renderInfoPlacemarks(p);
     updateInfoPointsUI(p);
     pushHistorySnapshot();
@@ -964,6 +927,7 @@ function deleteInfoPoint(idx, p) {
 
 function stopAddingInfo() {
     isAddingInfo = false;
+    pendingInfoCoords = null;
     $('addText').textContent = "Добавить новую точку";
     $('addMarkerBtn').classList.remove('active');
     map.setCursor('grab');
@@ -1282,6 +1246,31 @@ async function saveGist() {
         if (topSaveBtn) { topSaveBtn.disabled = false; topSaveBtn.textContent = 'Ошибка, повторить'; }
         showToast('Ошибка: ' + e.message, 'error');
     }
+}
+
+function openZnakiSelector() {
+    const grid = $('znakiGrid');
+    grid.innerHTML = '';
+    ZNAKI.forEach(f => {
+        const el = document.createElement('div');
+        el.className = 'znaki-item';
+        el.innerHTML = `<img class="znaki-thumb" src="znaki/${f}" alt="${f}"><span class="znaki-name">${f}</span>`;
+        el.onclick = () => selectZnak(f);
+        grid.appendChild(el);
+    });
+    $('znakiModal').classList.add('visible');
+}
+function selectZnak(file) {
+    if (pendingInfoCoords && activePoint) {
+        addInfoPoint(pendingInfoCoords, activePoint, file);
+        pendingInfoCoords = null;
+    }
+    closeZnakiSelector();
+}
+function closeZnakiSelector() {
+    if (!pendingInfoCoords) stopAddingInfo();
+    pendingInfoCoords = null;
+    $('znakiModal').classList.remove('visible');
 }
 
 // Экспорт функций в глобальную область для onclick обработчиков
