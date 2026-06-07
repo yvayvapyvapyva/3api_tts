@@ -100,7 +100,6 @@
 <div id="hud">
 <div id="commentBlock">
     <div id="commentText"></div>
-    <button id="commentPlayBtn" title="Озвучить комментарий">▶</button>
 </div>
     <div class="hud-header">
         <button class="hud-cmd" id="hudCmd"><span id="hudCmdNum">1</span><span id="hudCmdText"><span id="hudCmdTextInner">Маршрут не выбран</span></span><span id="hudCmdDist">---</span></button>
@@ -956,15 +955,8 @@ ymaps3.ready.then(async () => {
     }
 
     $('locateBtn').addEventListener('click', toggleAutoCenter);
-    $('commentBlock').addEventListener('click', (e) => {
-        if (e.target.closest('#commentPlayBtn')) return;
+    $('commentBlock').addEventListener('click', () => {
         $('commentBlock').classList.remove('visible'); clearInfoMarkers();
-    });
-    $('commentPlayBtn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        const idx = APP.navPreviewIndex >= 0 ? APP.navPreviewIndex : APP.navCurrentIndex;
-        const t = APP.navPoints[idx];
-        if (t && t.comm && t.comm.trim()) playComment(t.comm);
     });
     $('mapTypeBtn').addEventListener('click', toggleMapType);
     $('tiltBtn').addEventListener('click', toggleTilt);
