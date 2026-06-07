@@ -986,20 +986,27 @@ ymaps3.ready.then(async () => {
             const startSim = () => {
                 if (!APP._driveActive) driveAlongPath(idx);
             };
-            APP.navAudio.onended = () => {
+            const playNext = () => {
                 APP.navAudio.onended = null;
-                startSim();
+                if (p.comm && p.comm.trim()) {
+                    APP.navAudio.onended = () => { APP.navAudio.onended = null; startSim(); };
+                    playComment(p.comm);
+                } else {
+                    startSim();
+                }
             };
+            APP.navAudio.onended = playNext;
             playCommand(p.cmd);
-            setTimeout(() => {
+            const simTimeout = () => {
                 if (!APP._driveActive) {
                     const hasAudio = !APP.navAudio.paused && APP.navAudio.currentTime > 0;
                     if (!hasAudio) {
                         APP.navAudio.onended = null;
-                        driveAlongPath(idx);
+                        startSim();
                     }
                 }
-            }, 1000);
+            };
+            setTimeout(simTimeout, p.comm && p.comm.trim() ? 2000 : 1000);
         }
     });
 
