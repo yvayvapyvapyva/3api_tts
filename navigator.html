@@ -484,7 +484,7 @@ function renderInfoMarkers() {
         if (!img) return;
         const el = document.createElement('img');
         el.src = `znaki/${img}`;
-        el.style.cssText = 'width:36px;height:36px;transform:translate(-50%,-50%);';
+        el.style.cssText = 'width:36px;height:36px;border:none;outline:none;display:block;margin:-18px 0 0 -18px;';
         const marker = new ymaps3.YMapMarker({ coordinates: [inf.lon, inf.lat] }, el);
         APP.map.addChild(marker);
         APP._infoMarkers.push(marker);
