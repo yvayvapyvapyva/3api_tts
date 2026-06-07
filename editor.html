@@ -760,13 +760,13 @@ const toggleM = id => { const m = $(id); m.style.display = (m.style.display === 
 const closeD = () => { document.querySelectorAll('.color-dropdown').forEach(dr => dr.style.display = 'none'); $('dropdownOverlay').style.display = 'none'; };
 const toggleD = id => { const d = $(id), vis = d.style.display === 'flex'; closeD(); if(!vis) { d.style.display = 'flex'; $('dropdownOverlay').style.display = 'block'; } };
 const initColorDropdown = (id, cb) => Object.entries(COLORS).forEach(([n, d]) => { const r = Object.assign(document.createElement('div'), { className: 'color-row', onclick: (e) => { e.stopPropagation(); cb(d.hex, n); closeD(); }, innerHTML: `<div class="swatch" style="background:${d.hex}"></div><div style="font-weight:600;">${d.label}</div>` }); $(id).appendChild(r); });
-async function playText(text) {
+async function playText(text, voice = 'ru-RU-DmitryNeural') {
     if (!text || !text.trim()) return;
     try {
         const resp = await fetch(TTS_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ texts: [text] })
+            body: JSON.stringify({ texts: [text], voice })
         });
         const data = await resp.json();
         if (data.audios && data.audios[text]) {
@@ -1143,7 +1143,7 @@ async function executeDeletePoint() {
 function createPointCard(p, single = false) {
     const item = document.createElement('div'); item.className = 'sortable-point-item'; item.dataset.id = p.id;
     const cat = COLORS[p.color] || { hex: '#FFD700', label: 'Маневры на перекрестке' };
-    item.innerHTML = `${!single ? '<div class="sort-handle">☰</div>' : ''}<div class="item-main-row"><div class="point-number-text">${p.id || '?'}</div><div style="flex:1;display:flex;flex-direction:column;gap:6px"><button class="color-indicator-btn"><span class="swatch" style="background:${cat.hex}"></span><span class="cat-label">${cat.label}</span></button><div style="display:flex;gap:6px;align-items:center"><input class="cmd-input" type="text" placeholder="Команда..." value="${String(p.cmd).replace(/"/g,'&quot;')}"><button class="play-cmd-btn" title="Прослушать">▶</button></div></div></div><div class="info-points-wrap"><div class="info-points-toggle"><span>Дополнительная информация</span><span class="info-arrow">▶</span></div><div class="info-points-body" style="display:none"><textarea class="comm-input" placeholder="комментарий">${p.comm || ''}</textarea><div style="font-size:12px;color:rgba(255,255,255,0.5);padding:4px 8px 2px">Инфоточки</div><div class="info-points-list"></div><button class="btn-info-add">➕ Добавить инфоточку</button></div></div><div class="item-actions"><button class="btn-item-action btn-path">🖋️ Изменить путь</button><button class="btn-item-action btn-del" style="color:var(--danger)">🗑️ Удалить</button></div>`;
+    item.innerHTML = `${!single ? '<div class="sort-handle">☰</div>' : ''}<div class="item-main-row"><div class="point-number-text">${p.id || '?'}</div><div style="flex:1;display:flex;flex-direction:column;gap:6px"><button class="color-indicator-btn"><span class="swatch" style="background:${cat.hex}"></span><span class="cat-label">${cat.label}</span></button><div style="display:flex;gap:6px;align-items:center"><input class="cmd-input" type="text" placeholder="Команда..." value="${String(p.cmd).replace(/"/g,'&quot;')}"><button class="play-cmd-btn" title="Прослушать">▶</button></div></div></div><div class="info-points-wrap"><div class="info-points-toggle"><span>Дополнительная информация</span><span class="info-arrow">▶</span></div><div class="info-points-body" style="display:none"><div style="display:flex;gap:6px;align-items:start"><textarea class="comm-input" placeholder="комментарий">${p.comm || ''}</textarea><button class="play-comm-btn" title="Прослушать комментарий">▶</button></div><div style="font-size:12px;color:rgba(255,255,255,0.5);padding:4px 8px 2px">Инфоточки</div><div class="info-points-list"></div><button class="btn-info-add">➕ Добавить инфоточку</button></div></div><div class="item-actions"><button class="btn-item-action btn-path">🖋️ Изменить путь</button><button class="btn-item-action btn-del" style="color:var(--danger)">🗑️ Удалить</button></div>`;
 
     const cmdInput = item.querySelector('.cmd-input');
     cmdInput.addEventListener('input', () => { p.cmd = cmdInput.value; updateSaveState(); });
@@ -1154,9 +1154,10 @@ function createPointCard(p, single = false) {
     comm.addEventListener('input', () => { p.comm = comm.value; autoHeight(); updateSaveState(); });
     comm.addEventListener('blur', () => { pushHistorySnapshot(); updateSaveState(); });
     setTimeout(autoHeight, 0);
+    item.querySelector('.play-comm-btn').onclick = e => { e.stopPropagation(); pushHistorySnapshot(); playText(comm.value || p.comm, 'ru-RU-SvetlanaNeural'); };
     item.querySelector('.color-indicator-btn').onclick = e => { e.stopPropagation(); activeListPoint = { point: p, card: item }; toggleD('listColorDropdown'); };
     item.onclick = e => {
-        if (e.target.closest('.btn-item-action') || e.target.closest('.color-indicator-btn') || e.target.closest('.cmd-input') || e.target.closest('.play-cmd-btn') || e.target.closest('.comm-input')) return;
+        if (e.target.closest('.btn-item-action') || e.target.closest('.color-indicator-btn') || e.target.closest('.cmd-input') || e.target.closest('.play-cmd-btn') || e.target.closest('.comm-input') || e.target.closest('.play-comm-btn')) return;
         setActivePoint(p, true);
     };
     item.querySelector('.btn-del').onclick = () => { confirmDeletePoint(p, single); };

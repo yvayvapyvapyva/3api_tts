@@ -1633,6 +1633,27 @@ input, textarea, select {
     border-color: rgba(48,209,88,0.6);
     transform: scale(0.9);
 }
+.play-comm-btn {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+.play-comm-btn:active {
+    background: rgba(175,82,222,0.4);
+    border-color: rgba(175,82,222,0.6);
+    transform: scale(0.9);
+}
 
 .comm-input {
     background: linear-gradient(180deg, rgba(25, 25, 30, 0.7), rgba(15, 15, 18, 0.6));

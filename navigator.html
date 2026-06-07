@@ -680,7 +680,7 @@ async function playCommand(text) {
     await playTTS(text);
 }
 
-async function playTTS(text) {
+async function playTTS(text, voice = 'ru-RU-DmitryNeural') {
     APP.navAudio.pause();
     const cached = APP._audioCache.get(text);
     if (cached) {
@@ -692,7 +692,7 @@ async function playTTS(text) {
         const resp = await fetch(TTS_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ texts: [text], voice: 'ru-RU-DmitryNeural', pitch: '-10Hz' })
+            body: JSON.stringify({ texts: [text], voice, pitch: '-10Hz' })
         });
         const data = await resp.json();
         if (data.audios && data.audios[text]) {
@@ -715,7 +715,7 @@ async function playComment(text) {
     APP._commentAudio.pause();
     const saved = APP.navAudio;
     APP.navAudio = APP._commentAudio;
-    await playTTS(text);
+    await playTTS(text, 'ru-RU-SvetlanaNeural');
     APP.navAudio = saved;
 }
 
@@ -804,14 +804,21 @@ function processRouteData(data) {
 }
 
 async function precacheRouteAudio(data) {
-    const texts = [...new Set(data.flatMap(d => [d.cmd, d.comm].filter(t => t && t.trim())))];
+    const cmdTexts = [...new Set(data.map(d => d.cmd).filter(t => t && t.trim()))];
+    const commTexts = [...new Set(data.map(d => d.comm).filter(t => t && t.trim()))];
+    await Promise.all([
+        _precacheBatch(cmdTexts, 'ru-RU-DmitryNeural'),
+        _precacheBatch(commTexts, 'ru-RU-SvetlanaNeural'),
+    ]);
+}
+async function _precacheBatch(texts, voice) {
     const uncached = texts.filter(t => !APP._audioCache.has(t));
     if (!uncached.length) return;
     try {
         const resp = await fetch(TTS_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ texts: uncached, voice: 'ru-RU-DmitryNeural', pitch: '-10Hz' })
+            body: JSON.stringify({ texts: uncached, voice, pitch: '-10Hz' })
         });
         const result = await resp.json();
         if (result.audios) {
@@ -824,7 +831,7 @@ async function precacheRouteAudio(data) {
             }
         }
     } catch (e) {
-        console.warn('Batch precache error:', e);
+        console.warn(`Batch precache error (${voice}):`, e);
     }
 }
 
