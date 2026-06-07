@@ -120,7 +120,7 @@ let map, points = [], cur = null, isAdd = false, isDrawing = false, isAddingInfo
 let historyStack = [], historyIndex = -1, lastSavedSnapshot = "[]", toastTimer = null;
 let pendingDeletePoint = null;
 let pendingDeleteSingle = false;
-let pendingInfoCoords = null;
+let pendingInfoImage = null;
 
 const ZNAKI = ['2.1.png','2.4.png','3.24.png','3.27.png','3.31.png','4.1.1.png','5.15.2.png','5.5.png','6.16.png'];
 
@@ -395,9 +395,9 @@ ymaps.ready(async () => {
     map.geoObjects.add(userLocPlacemark);
     initGeolocation();
     map.events.add('click', e => {
-        if(isAddingInfo && activePoint) {
-            pendingInfoCoords = [f6(e.get('coords')[0]), f6(e.get('coords')[1])];
-            openZnakiSelector();
+        if(isAddingInfo && activePoint && pendingInfoImage) {
+            addInfoPoint([f6(e.get('coords')[0]), f6(e.get('coords')[1])], activePoint, pendingInfoImage);
+            pendingInfoImage = null;
             return;
         }
         if(isAdd && tempNewPointData) {
@@ -927,7 +927,7 @@ function deleteInfoPoint(idx, p) {
 
 function stopAddingInfo() {
     isAddingInfo = false;
-    pendingInfoCoords = null;
+    pendingInfoImage = null;
     $('addText').textContent = "Добавить новую точку";
     $('addMarkerBtn').classList.remove('active');
     map.setCursor('grab');
@@ -1140,11 +1140,7 @@ function createPointCard(p, single = false) {
     infoWrap.querySelector('.btn-info-add').onclick = () => {
         toggleM('pointsOrderModal');
         activePoint = p;
-        isAddingInfo = true;
-        $('addText').textContent = "Кликните на карте для добавления инфоточки";
-        $('addMarkerBtn').classList.add('active');
-        map.setCursor('crosshair');
-        showToast('Кликните на карте, чтобы разместить информационную точку', 'info');
+        openZnakiSelector();
     };
     return item;
 }
@@ -1260,21 +1256,18 @@ function openZnakiSelector() {
     });
     $('znakiModal').classList.add('visible');
 }
+
 function selectZnak(file) {
-    try {
-        if (pendingInfoCoords && activePoint) {
-            addInfoPoint(pendingInfoCoords, activePoint, file);
-        }
-    } catch (e) {
-        console.warn('selectZnak error:', e);
-    } finally {
-        pendingInfoCoords = null;
-        $('znakiModal').classList.remove('visible');
-    }
+    pendingInfoImage = file;
+    isAddingInfo = true;
+    $('znakiModal').classList.remove('visible');
+    $('addText').textContent = "Кликните на карте для установки знака";
+    $('addMarkerBtn').classList.add('active');
+    map.setCursor('crosshair');
+    showToast('Кликните на карте, чтобы установить выбранный знак', 'info');
 }
 function closeZnakiSelector() {
-    if (!pendingInfoCoords) stopAddingInfo();
-    pendingInfoCoords = null;
+    if (isAddingInfo) stopAddingInfo();
     $('znakiModal').classList.remove('visible');
 }
 
