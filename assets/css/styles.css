@@ -1594,6 +1594,13 @@ input, textarea, select {
     width: 100%;
 }
 
+.cmd-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 8px;
+    padding: 0 2px;
+}
 .cmd-input {
     background: linear-gradient(180deg, rgba(25, 25, 30, 0.7), rgba(15, 15, 18, 0.6));
     border-radius: 10px;
