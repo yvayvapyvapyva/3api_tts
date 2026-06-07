@@ -125,10 +125,12 @@
 </div>
 
 <script>
+const TTS_API_URL = 'https://functions.yandexcloud.net/d4erngid6s4rf5oinnp1';
+
 const APP = {
     map: null, userMarker: null, lastPos: null, lastAz: 0, rawAz: 0, lastTilt: 0, autoCenter: false, currentSpeed: 0,
     navPoints: [], navCurrentIndex: 0, navPreviewIndex: -1,
-    navAudio: new Audio(),
+    navAudio: new Audio(), _commentAudio: new Audio(),
     navConfig: { TRIGGER_DIST: 25, AZ_TOLERANCE: 45, SPEED_THRESHOLD: 2 },
     _isScheme: true, _schemeLayer: null, _featuresLayer: null, _buildings: null,
     _driveActive: false, _driveRaf: null, _driveMarker: null, _driveShowFrom: -1,
@@ -579,7 +581,15 @@ function updateHud() {
 
     $('hudCmdNum').textContent = idx + 1;
     $('hudCmdTextInner').textContent = t.cmd;
-    $('hudCmd').onclick = () => playCommand(t.cmd);
+    $('hudCmd').onclick = () => {
+        playCommand(t.cmd);
+        if (t.comm && t.comm.trim()) {
+            APP.navAudio.onended = () => {
+                APP.navAudio.onended = null;
+                playComment(t.comm);
+            };
+        }
+    };
     $('selectBtn').style.display = isPreview ? 'block' : 'none';
     if (isPreview) $('selectBtn').onclick = () => setTarget(idx);
 
@@ -704,6 +714,29 @@ async function playCommand(text) {
     }
 }
 
+async function playComment(text) {
+    if (!text || !text.trim()) return;
+    APP._commentAudio.pause();
+    try {
+        const resp = await fetch(TTS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, voice: 'ru-RU-DmitryNeural', pitch: '-10Hz' })
+        });
+        const data = await resp.json();
+        if (data.audio) {
+            const binaryStr = atob(data.audio);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+            const blob = new Blob([bytes], { type: 'audio/mp3' });
+            APP._commentAudio.src = URL.createObjectURL(blob);
+            await APP._commentAudio.play().catch(() => {});
+        }
+    } catch (e) {
+        console.warn('TTS error:', e);
+    }
+}
+
 async function preloadAudio() {
     if (!('caches' in window)) return;
     const cache = await caches.open('route-audio-v1');
@@ -727,6 +760,12 @@ function navCheckTriggers() {
 
     if (d <= APP.navConfig.TRIGGER_DIST && ad <= APP.navConfig.AZ_TOLERANCE) {
         playCommand(t.cmd);
+        if (t.comm && t.comm.trim()) {
+            APP.navAudio.onended = () => {
+                APP.navAudio.onended = null;
+                playComment(t.comm);
+            };
+        }
         APP.navCurrentIndex++;
         APP.navPreviewIndex = -1;
         if (APP.navCurrentIndex < APP.navPoints.length) {
