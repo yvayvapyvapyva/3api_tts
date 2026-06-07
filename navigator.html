@@ -98,9 +98,10 @@
 <button id="instructionBtn" onclick="openInstruction()">📖 Инструкция</button>
 
 <div id="hud">
-    <div id="commentBlock">
-        <div id="commentText"></div>
-    </div>
+<div id="commentBlock">
+    <div id="commentText"></div>
+    <button id="commentPlayBtn" title="Озвучить комментарий">▶</button>
+</div>
     <div class="hud-header">
         <button class="hud-cmd" id="hudCmd"><span id="hudCmdNum">1</span><span id="hudCmdText"><span id="hudCmdTextInner">Маршрут не выбран</span></span><span id="hudCmdDist">---</span></button>
     </div>
@@ -137,7 +138,8 @@ const APP = {
     _driveSpeed: 120,
     _userMarkerEl: null, markerRotation: 0,
     _lastMarkerPos: null, _currentDisplayAz: 0, _prevAnim: null,
-    _infoMarkers: []
+    _infoMarkers: [],
+    _audioCache: new Map()
 };
 
 const $ = id => document.getElementById(id);
@@ -671,84 +673,52 @@ function closePreview() {
 
 
 
-function getAudioPath(text, form = 'NFC') {
-    if (!text) return null;
-    const normalized = text.normalize(form).toLowerCase()
-        .replace(/[.,\/#!$%\^&\*;:{}=\-`~()]/g, "").trim()
-        .replace(/\s+/g, '_');
-    return `audio/${encodeURIComponent(normalized)}.mp3`;
-}
-
-function getAudioPaths(text) {
-    const nfc = getAudioPath(text, 'NFC');
-    const nfd = getAudioPath(text, 'NFD');
-    return nfc === nfd ? [nfc] : [nfc, nfd];
-}
 
 async function playCommand(text) {
-    const paths = getAudioPaths(text);
-    if (!paths.length) return;
+    if (!text || !text.trim()) return;
     APP.navAudio.pause();
-    if ('caches' in window) {
-        try {
-            const cache = await caches.open('route-audio-v1');
-            for (const path of paths) {
-                const cached = await cache.match(path);
-                if (cached) {
-                    APP.navAudio.src = URL.createObjectURL(await cached.blob());
-                    APP.navAudio.play().catch(() => {});
-                    return;
-                }
-            }
-        } catch (e) { }
-    }
-    for (const path of paths) {
-        try {
-            const res = await fetch(path);
-            if (res.ok) {
-                APP.navAudio.src = path;
-                APP.navAudio.play().catch(() => {});
-                return;
-            }
-        } catch (e) { continue; }
-    }
+    await playTTS(text);
 }
 
-async function playComment(text) {
-    if (!text || !text.trim()) return;
-    APP._commentAudio.pause();
+async function playTTS(text) {
+    APP.navAudio.pause();
+    const cached = APP._audioCache.get(text);
+    if (cached) {
+        APP.navAudio.src = cached;
+        await APP.navAudio.play().catch(() => {});
+        return;
+    }
     try {
         const resp = await fetch(TTS_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, voice: 'ru-RU-DmitryNeural', pitch: '-10Hz' })
+            body: JSON.stringify({ texts: [text], voice: 'ru-RU-DmitryNeural', pitch: '-10Hz' })
         });
         const data = await resp.json();
-        if (data.audio) {
-            const binaryStr = atob(data.audio);
+        if (data.audios && data.audios[text]) {
+            const binaryStr = atob(data.audios[text]);
             const bytes = new Uint8Array(binaryStr.length);
             for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
             const blob = new Blob([bytes], { type: 'audio/mp3' });
-            APP._commentAudio.src = URL.createObjectURL(blob);
-            await APP._commentAudio.play().catch(() => {});
+            const url = URL.createObjectURL(blob);
+            APP._audioCache.set(text, url);
+            APP.navAudio.src = url;
+            await APP.navAudio.play().catch(() => {});
         }
     } catch (e) {
         console.warn('TTS error:', e);
     }
 }
 
-async function preloadAudio() {
-    if (!('caches' in window)) return;
-    const cache = await caches.open('route-audio-v1');
-    const allPaths = ALL_AUDIO_COMMANDS.flatMap(cmd => getAudioPaths(cmd));
-    const uniquePaths = [...new Set(allPaths)];
-    for (const path of uniquePaths) {
-        try {
-            const res = await fetch(path);
-            if (res.ok) await cache.put(path, res);
-        } catch (e) {}
-    }
+async function playComment(text) {
+    if (!text || !text.trim()) return;
+    APP._commentAudio.pause();
+    const saved = APP.navAudio;
+    APP.navAudio = APP._commentAudio;
+    await playTTS(text);
+    APP.navAudio = saved;
 }
+
 
 function navCheckTriggers() {
     if (APP.navCurrentIndex < 0 || !APP.lastPos || !APP.navPoints[APP.navCurrentIndex]) return;
@@ -829,8 +799,33 @@ function processRouteData(data) {
             }
         }, 100);
     }
-    preloadAudio();
+    precacheRouteAudio(data);
     updateRouteNameDisplay();
+}
+
+async function precacheRouteAudio(data) {
+    const texts = [...new Set(data.flatMap(d => [d.cmd, d.comm].filter(t => t && t.trim())))];
+    const uncached = texts.filter(t => !APP._audioCache.has(t));
+    if (!uncached.length) return;
+    try {
+        const resp = await fetch(TTS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texts: uncached, voice: 'ru-RU-DmitryNeural', pitch: '-10Hz' })
+        });
+        const result = await resp.json();
+        if (result.audios) {
+            for (const [text, b64] of Object.entries(result.audios)) {
+                const binaryStr = atob(b64);
+                const bytes = new Uint8Array(binaryStr.length);
+                for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+                const blob = new Blob([bytes], { type: 'audio/mp3' });
+                APP._audioCache.set(text, URL.createObjectURL(blob));
+            }
+        }
+    } catch (e) {
+        console.warn('Batch precache error:', e);
+    }
 }
 
 let wakeLockInterval = null;
@@ -954,7 +949,16 @@ ymaps3.ready.then(async () => {
     }
 
     $('locateBtn').addEventListener('click', toggleAutoCenter);
-    $('commentBlock').addEventListener('click', () => { $('commentBlock').classList.remove('visible'); clearInfoMarkers(); });
+    $('commentBlock').addEventListener('click', (e) => {
+        if (e.target.closest('#commentPlayBtn')) return;
+        $('commentBlock').classList.remove('visible'); clearInfoMarkers();
+    });
+    $('commentPlayBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = APP.navPreviewIndex >= 0 ? APP.navPreviewIndex : APP.navCurrentIndex;
+        const t = APP.navPoints[idx];
+        if (t && t.comm && t.comm.trim()) playComment(t.comm);
+    });
     $('mapTypeBtn').addEventListener('click', toggleMapType);
     $('tiltBtn').addEventListener('click', toggleTilt);
     $('speedSlider').addEventListener('input', function() {

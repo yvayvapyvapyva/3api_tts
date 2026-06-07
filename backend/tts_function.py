@@ -2,14 +2,13 @@
 """
 tts_function.py — Yandex Cloud Function для синтеза речи через edge-tts
 
-Использует Microsoft Edge TTS (бесплатно, без ключей).
-Голос по умолчанию: ru-RU-DmitryNeural (как в commands_editor.py)
-
 Зависимости (requirements-tts.txt):
   edge-tts>=6.0.0
 
-Запрос: POST, JSON {"text": "текст", "voice": "ru-RU-DmitryNeural", "pitch": "-10Hz"}
-Ответ:  JSON {"audio": "<base64 mp3>", "format": "mp3"}
+Запрос:
+  POST {"texts": ["текст1", "текст2"], "voice": "ru-RU-DmitryNeural", "pitch": "-10Hz"}
+Ответ:
+  {"audios": {"текст1": "<base64>", "текст2": "<base64>"}, "format": "mp3"}
 """
 
 import asyncio
@@ -38,6 +37,15 @@ def _cors(status, body):
     }
 
 
+async def _synthesize_one(text, voice, pitch):
+    result = b""
+    communicate = edge_tts.Communicate(text, voice=voice, pitch=pitch)
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            result += chunk["data"]
+    return text, result
+
+
 def handler(event, context):
     try:
         if event.get("httpMethod") == "OPTIONS":
@@ -47,25 +55,29 @@ def handler(event, context):
             return _cors(500, {"error": "edge-tts not installed"})
 
         body = json.loads(event.get("body", "{}"))
-        text = body.get("text", "").strip()
-        if not text:
-            return _cors(400, {"error": "empty text"})
-
         voice = body.get("voice", VOICE)
         pitch = body.get("pitch", PITCH)
 
-        async def _synthesize():
-            result = b""
-            communicate = edge_tts.Communicate(text, voice=voice, pitch=pitch)
-            async for chunk in communicate.stream():
-                if chunk["type"] == "audio":
-                    result += chunk["data"]
-            return result
+        texts = body.get("texts")
+        if not isinstance(texts, list) or not texts:
+            return _cors(400, {"error": "texts must be a non-empty array"})
 
-        audio_data = asyncio.run(_synthesize())
-        audio_b64 = base64.b64encode(audio_data).decode("utf-8")
+        texts = [t.strip() for t in texts if t and t.strip()]
+        if not texts:
+            return _cors(400, {"error": "all texts are empty"})
 
-        return _cors(200, {"audio": audio_b64, "format": "mp3"})
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        results = loop.run_until_complete(
+            asyncio.gather(*[_synthesize_one(t, voice, pitch) for t in texts])
+        )
+        loop.close()
+
+        audios = {}
+        for text, audio_data in results:
+            audios[text] = base64.b64encode(audio_data).decode("utf-8")
+
+        return _cors(200, {"audios": audios, "format": "mp3"})
 
     except Exception as e:
         return _cors(500, {"error": str(e)})

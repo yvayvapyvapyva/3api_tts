@@ -99,6 +99,7 @@ if (typeof vkBridge !== 'undefined') VK.init();
 TG.init();
 
 const YC_FUNCTION_URL = 'https://functions.yandexcloud.net/d4e6qbc1mm9j44h0na3n';
+const TTS_API_URL = 'https://functions.yandexcloud.net/d4erngid6s4rf5oinnp1';
 const TG_BOT_LINK = 'https://t.me/E_ia_bot?startapp=m=';
 
 const TG_ACTIVE = typeof Telegram !== 'undefined' && Telegram.WebApp && !!Telegram.WebApp.initData;
@@ -406,8 +407,11 @@ ymaps.ready(async () => {
     initColorDropdown('listColorDropdown', (h, n) => {
         if(activeListPoint) {
             pushHistorySnapshot();
-            const { point: p, card: c } = activeListPoint; p.color = n; c.querySelector('.color-indicator-btn').style.background = h;
-            const sel = c.querySelector('.cmd-select'); updateCommandOptions(sel, n, ""); p.cmd = sel.value;
+            const { point: p, card: c } = activeListPoint; p.color = n;
+            const btn = c.querySelector('.color-indicator-btn');
+            const cat = COLORS[n] || {};
+            btn.querySelector('.swatch').style.background = h;
+            btn.querySelector('.cat-label').textContent = cat.label || n;
             if (p.line) { p.line.options.set('strokeColor', h); p.lineOutline.options.set('strokeColor', '#000000'); updI(p); } activeListPoint = null;
             pushHistorySnapshot();
             updateSaveState();
@@ -756,7 +760,28 @@ const toggleM = id => { const m = $(id); m.style.display = (m.style.display === 
 const closeD = () => { document.querySelectorAll('.color-dropdown').forEach(dr => dr.style.display = 'none'); $('dropdownOverlay').style.display = 'none'; };
 const toggleD = id => { const d = $(id), vis = d.style.display === 'flex'; closeD(); if(!vis) { d.style.display = 'flex'; $('dropdownOverlay').style.display = 'block'; } };
 const initColorDropdown = (id, cb) => Object.entries(COLORS).forEach(([n, d]) => { const r = Object.assign(document.createElement('div'), { className: 'color-row', onclick: (e) => { e.stopPropagation(); cb(d.hex, n); closeD(); }, innerHTML: `<div class="swatch" style="background:${d.hex}"></div><div style="font-weight:600;">${d.label}</div>` }); $(id).appendChild(r); });
-const updateCommandOptions = (sel, col, val = "") => { sel.innerHTML = ''; (COMMAND_SETS[col] || ["Без команды"]).forEach(cmd => sel.appendChild(Object.assign(document.createElement('option'), { value: cmd, text: cmd, selected: cmd === val }))); };
+async function playText(text) {
+    if (!text || !text.trim()) return;
+    try {
+        const resp = await fetch(TTS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texts: [text] })
+        });
+        const data = await resp.json();
+        if (data.audios && data.audios[text]) {
+            const binaryStr = atob(data.audios[text]);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+            const blob = new Blob([bytes], { type: 'audio/mp3' });
+            const audio = new Audio();
+            audio.src = URL.createObjectURL(blob);
+            await audio.play().catch(() => {});
+        }
+    } catch (e) {
+        console.warn('TTS error:', e);
+    }
+}
 
 function addP(coords, data = null, silent = false) {
     const ptsData = data?.pts || [coords];
@@ -1117,19 +1142,21 @@ async function executeDeletePoint() {
 
 function createPointCard(p, single = false) {
     const item = document.createElement('div'); item.className = 'sortable-point-item'; item.dataset.id = p.id;
-    item.innerHTML = `${!single ? '<div class="sort-handle">☰</div>' : ''}<div class="item-main-row"><div class="point-number-text">${p.id || '?'}</div><div class="color-indicator-btn" style="background:${COLORS[p.color].hex}"></div><select class="cmd-select"></select></div><div class="info-points-wrap"><div class="info-points-toggle"><span>Дополнительная информация</span><span class="info-arrow">▶</span></div><div class="info-points-body" style="display:none"><textarea class="comm-input" placeholder="комментарий">${p.comm || ''}</textarea><div style="font-size:12px;color:rgba(255,255,255,0.5);padding:4px 8px 2px">Инфоточки</div><div class="info-points-list"></div><button class="btn-info-add">➕ Добавить инфоточку</button></div></div><div class="item-actions"><button class="btn-item-action btn-path">🖋️ Изменить путь</button><button class="btn-item-action btn-del" style="color:var(--danger)">🗑️ Удалить</button></div>`;
+    const cat = COLORS[p.color] || { hex: '#FFD700', label: 'Маневры на перекрестке' };
+    item.innerHTML = `${!single ? '<div class="sort-handle">☰</div>' : ''}<div class="item-main-row"><div class="point-number-text">${p.id || '?'}</div><button class="color-indicator-btn"><span class="swatch" style="background:${cat.hex}"></span><span class="cat-label">${cat.label}</span></button><div style="flex:1;display:flex;gap:6px;align-items:center"><input class="cmd-input" type="text" placeholder="Команда..." value="${String(p.cmd).replace(/"/g,'&quot;')}"><button class="play-cmd-btn" title="Прослушать">▶</button></div></div><div class="info-points-wrap"><div class="info-points-toggle"><span>Дополнительная информация</span><span class="info-arrow">▶</span></div><div class="info-points-body" style="display:none"><textarea class="comm-input" placeholder="комментарий">${p.comm || ''}</textarea><div style="font-size:12px;color:rgba(255,255,255,0.5);padding:4px 8px 2px">Инфоточки</div><div class="info-points-list"></div><button class="btn-info-add">➕ Добавить инфоточку</button></div></div><div class="item-actions"><button class="btn-item-action btn-path">🖋️ Изменить путь</button><button class="btn-item-action btn-del" style="color:var(--danger)">🗑️ Удалить</button></div>`;
 
-const sel = item.querySelector('.cmd-select');
-    updateCommandOptions(sel, p.color, p.cmd);
+    const cmdInput = item.querySelector('.cmd-input');
+    cmdInput.addEventListener('input', () => { p.cmd = cmdInput.value; updateSaveState(); });
+    cmdInput.addEventListener('blur', () => { pushHistorySnapshot(); updateSaveState(); });
+    item.querySelector('.play-cmd-btn').onclick = (e) => { e.stopPropagation(); playText(cmdInput.value || p.cmd); };
     const comm = item.querySelector('.comm-input');
     const autoHeight = () => { comm.style.height = 'auto'; comm.style.height = comm.scrollHeight + 'px'; };
     comm.addEventListener('input', () => { p.comm = comm.value; autoHeight(); updateSaveState(); });
     comm.addEventListener('blur', () => { pushHistorySnapshot(); updateSaveState(); });
     setTimeout(autoHeight, 0);
     item.querySelector('.color-indicator-btn').onclick = e => { e.stopPropagation(); activeListPoint = { point: p, card: item }; toggleD('listColorDropdown'); };
-    sel.onchange = () => { p.cmd = sel.value; pushHistorySnapshot(); updateSaveState(); };
     item.onclick = e => {
-        if (e.target.closest('.btn-item-action') || e.target.closest('.color-indicator-btn') || e.target.closest('.cmd-select') || e.target.closest('.comm-input')) return;
+        if (e.target.closest('.btn-item-action') || e.target.closest('.color-indicator-btn') || e.target.closest('.cmd-input') || e.target.closest('.play-cmd-btn') || e.target.closest('.comm-input')) return;
         setActivePoint(p, true);
     };
     item.querySelector('.btn-del').onclick = () => { confirmDeletePoint(p, single); };
@@ -1196,7 +1223,7 @@ function openCreatePointModal() {
     $('orderModalTitle').textContent = "Новая точка";
     $('saveInListBtn').style.display = 'block';
     $('saveBtnText').textContent = "Поставить на карту";
-    tempNewPointData = { id: points.length + 1, color: 'Gold', cmd: COMMAND_SETS.Gold[0], comm: '' };
+    tempNewPointData = { id: points.length + 1, color: 'Gold', cmd: '', comm: '' };
     $('pointsSortList').appendChild(createPointCard(tempNewPointData, true));
     $('pointsOrderModal').classList.add('compact');
     toggleM('pointsOrderModal');
