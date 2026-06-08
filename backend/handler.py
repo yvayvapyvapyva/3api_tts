@@ -14,6 +14,7 @@ except ImportError:
 endpoint = os.getenv("YDB_ENDPOINT")
 database = os.getenv("YDB_DATABASE")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
 
 pool = None
 
@@ -323,6 +324,11 @@ def handler(event, context):
         verified_user_id, err = verify_tg_init_data(tg_init_data)
         if not verified_user_id:
             return create_response(401, {'error': 'invalid_tg_signature', 'message': err})
+    elif platform == 'admin':
+        token = params.get('admin_token', '')
+        if not ADMIN_TOKEN or token != ADMIN_TOKEN:
+            return create_response(401, {'error': 'invalid_admin_token'})
+        verified_user_id = params.get('id')
     else:
         verified_user_id = params.get('id')
 
