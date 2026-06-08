@@ -492,19 +492,16 @@ function showAdminLogin() {
     const ws = $('welcomeScreen');
     ws.style.cssText = 'display:flex;align-items:center;justify-content:center;background:rgba(10,11,15,0.95);';
     ws.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 32px;max-width:360px;width:100%;text-align:center;">
-            <span style="font-size:48px">🔐</span>
-            <div style="font-size:22px;font-weight:700;color:#fff;">Панель администратора</div>
-            <div style="font-size:14px;color:rgba(255,255,255,0.5);">Введите ID пользователя и токен для доступа к его маршрутам</div>
-            <div style="width:100%;display:flex;flex-direction:column;gap:12px;">
-                <div class="input-wrapper" style="padding:3px;border-radius:14px;margin:0;"><input type="text" id="adminUserId" placeholder="ID пользователя" style="width:100%;padding:14px;border:none;font-size:16px;outline:none;background:transparent;color:#f5f7fa;font-family:inherit;"></div>
-                <div class="input-wrapper" style="padding:3px;border-radius:14px;margin:0;"><input type="password" id="adminToken" placeholder="Токен администратора" style="width:100%;padding:14px;border:none;font-size:16px;outline:none;background:transparent;color:#f5f7fa;font-family:inherit;"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:32px 28px;max-width:320px;width:100%;text-align:center;">
+            <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
+                <div class="input-wrapper" style="padding:3px;border-radius:14px;margin:0;"><input type="text" id="adminUserId" placeholder="ID" style="width:100%;padding:14px;border:none;font-size:16px;outline:none;background:transparent;color:#f5f7fa;font-family:inherit;"></div>
+                <div class="input-wrapper" style="padding:3px;border-radius:14px;margin:0;"><input type="password" id="adminToken" placeholder="Пароль" style="width:100%;padding:14px;border:none;font-size:16px;outline:none;background:transparent;color:#f5f7fa;font-family:inherit;"></div>
             </div>
             <button id="adminLoginBtn" class="btn-action" style="background:linear-gradient(180deg, rgba(52,199,89,0.9), rgba(40,160,70,0.85));">Войти</button>
             <div id="adminLoginError" style="font-size:13px;color:#FF453A;display:none;"></div>
         </div>
     `;
-    $('adminLoginBtn').onclick = () => {
+    $('adminLoginBtn').onclick = async () => {
         const uid = $('adminUserId').value.trim();
         const token = $('adminToken').value.trim();
         const errEl = $('adminLoginError');
@@ -517,7 +514,31 @@ function showAdminLogin() {
         ADMIN_TOKEN = token;
         window.USER_ID = uid;
         window.USER_NAME = uid;
-        ymaps.ready(proceedAsAdmin);
+
+        const btn = $('adminLoginBtn');
+        btn.textContent = 'Проверка...';
+        btn.disabled = true;
+
+        try {
+            await callYcFunction('list');
+            btn.textContent = 'Войти';
+            btn.disabled = false;
+            ymaps.ready(proceedAsAdmin);
+        } catch (e) {
+            ADMIN_TOKEN = '';
+            window.USER_ID = '';
+            window.USER_NAME = '';
+            btn.textContent = 'Войти';
+            btn.disabled = false;
+            const ws = $('welcomeScreen');
+            ws.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 32px;text-align:center;">
+                    <span style="font-size:64px">🔒</span>
+                    <div style="font-size:20px;font-weight:700;color:#fff;">Доступ закрыт</div>
+                    <button onclick="showAdminLogin()" style="padding:12px 24px;border-radius:14px;border:0.5px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-size:15px;font-weight:600;cursor:pointer;">Назад</button>
+                </div>
+            `;
+        }
     };
 }
 
