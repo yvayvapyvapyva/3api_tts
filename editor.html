@@ -115,7 +115,6 @@ const TTS_API_URL = 'https://functions.yandexcloud.net/d4erngid6s4rf5oinnp1';
 const TG_BOT_LINK = 'https://t.me/E_ia_bot?startapp=m=';
 
 const TG_ACTIVE = typeof Telegram !== 'undefined' && Telegram.WebApp && !!Telegram.WebApp.initData;
-const IS_ADMIN = !TG_ACTIVE && typeof vkBridge === 'undefined';
 let ADMIN_TOKEN = '';
 
 let map, points = [], cur = null, isAdd = false, isDrawing = false, isAddingInfo = false, curRoute = null, activeListPoint = null, modalMode = 'list', tempNewPointData = null, userLocPlacemark = null, activePoint = null, settingsRouteFiles = [];
@@ -126,8 +125,8 @@ let pendingInfoImage = null;
 
 const ZNAKI = ['2.1.png','2.4.png','3.24.png','3.27.png','3.31.png','4.1.1.png','5.15.2.png','5.5.png','6.16.png'];
 
-window.USER_ID = TG_ACTIVE ? TG.getId() : (IS_ADMIN ? '' : VK.getId());
-window.USER_NAME = TG_ACTIVE ? TG.getName() : (IS_ADMIN ? '' : VK.getName());
+window.USER_ID = TG_ACTIVE ? TG.getId() : VK.getId();
+window.USER_NAME = TG_ACTIVE ? TG.getName() : VK.getName();
 window.USER_UNAME = '';
 
 function openInstruction() {
@@ -173,7 +172,7 @@ document.addEventListener('pointerdown', (e) => {
 async function callYcFunction(action, params = {}, bodyData = null) {
     const url = new URL(YC_FUNCTION_URL);
     url.searchParams.set('action', action);
-    if (IS_ADMIN) {
+    if (ADMIN_TOKEN) {
         url.searchParams.set('p', 'admin');
         url.searchParams.set('admin_token', ADMIN_TOKEN);
     } else {
@@ -389,11 +388,7 @@ ymaps.ready(async () => {
             } catch (e) {}
         }
         if (!isVk) {
-            if (IS_ADMIN) {
-                showAdminLogin();
-                return;
-            }
-            $('welcomeScreen').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:60px 40px;text-align:center;"><span style="font-size:52px">🔒</span><div style="font-size:20px;font-weight:700;color:#fff;">Доступ запрещён</div><div style="font-size:15px;color:rgba(255,255,255,0.55);line-height:1.5;">Редактор работает только в приложениях VK и Telegram.<br>Откройте через мини-приложение.</div></div>';
+            showAdminLogin();
             return;
         }
     }
