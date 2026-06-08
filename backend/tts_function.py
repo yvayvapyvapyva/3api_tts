@@ -22,6 +22,7 @@ except ImportError:
 
 VOICE = "ru-RU-DmitryNeural"
 PITCH = "-10Hz"
+VOLUME = "+30%"
 
 
 def _cors(status, body):
@@ -37,9 +38,9 @@ def _cors(status, body):
     }
 
 
-async def _synthesize_one(text, voice, pitch):
+async def _synthesize_one(text, voice, pitch, volume):
     result = b""
-    communicate = edge_tts.Communicate(text, voice=voice, pitch=pitch)
+    communicate = edge_tts.Communicate(text, voice=voice, pitch=pitch, volume=volume)
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
             result += chunk["data"]
@@ -57,6 +58,7 @@ def handler(event, context):
         body = json.loads(event.get("body", "{}"))
         voice = body.get("voice", VOICE)
         pitch = body.get("pitch", PITCH)
+        volume = body.get("volume", VOLUME)
 
         texts = body.get("texts")
         if not isinstance(texts, list) or not texts:
@@ -69,7 +71,7 @@ def handler(event, context):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         results = loop.run_until_complete(
-            asyncio.gather(*[_synthesize_one(t, voice, pitch) for t in texts])
+            asyncio.gather(*[_synthesize_one(t, voice, pitch, volume) for t in texts])
         )
         loop.close()
 
