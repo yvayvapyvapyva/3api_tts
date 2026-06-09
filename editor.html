@@ -122,6 +122,7 @@ let historyStack = [], historyIndex = -1, lastSavedSnapshot = "[]", toastTimer =
 let pendingDeletePoint = null;
 let pendingDeleteSingle = false;
 let pendingInfoImage = null;
+let pendingInfoPlacemark = null;
 
 const ZNAKI = ['10.png','2.4.png','2.5.png','20.png','3.1.png','3.27.png','3.31.png','30.png','4.1.1.png','4.1.2.png','40.png','5.15.2.png','5.19.1.png','5.19.2.png','5.21.png','5.5.png','50.png','6.16.png','6.3.1.png','6.4.png'];
 
@@ -402,8 +403,7 @@ ymaps.ready(async () => {
     initGeolocation();
     map.events.add('click', e => {
         if(isAddingInfo && activePoint && pendingInfoImage) {
-            addInfoPoint([f6(e.get('coords')[0]), f6(e.get('coords')[1])], activePoint, pendingInfoImage);
-            pendingInfoImage = null;
+            placeInfoPoint([f6(e.get('coords')[0]), f6(e.get('coords')[1])], activePoint);
             return;
         }
         if(isAdd && tempNewPointData) {
@@ -550,8 +550,7 @@ async function proceedAsAdmin() {
     initGeolocation();
     map.events.add('click', e => {
         if(isAddingInfo && activePoint && pendingInfoImage) {
-            addInfoPoint([f6(e.get('coords')[0]), f6(e.get('coords')[1])], activePoint, pendingInfoImage);
-            pendingInfoImage = null;
+            placeInfoPoint([f6(e.get('coords')[0]), f6(e.get('coords')[1])], activePoint);
             return;
         }
         if(isAdd && tempNewPointData) {
@@ -1015,13 +1014,44 @@ function rebuildInfoPointList(listEl, p, card) {
     });
 }
 
-function addInfoPoint(coords, p, image) {
-    p.info.push({ lat: coords[0], lon: coords[1], image: image || '' });
-    renderInfoPlacemarks(p);
-    updateInfoPointsUI(p);
-    pushHistorySnapshot();
-    updateSaveState();
-    stopAddingInfo();
+function placeInfoPoint(coords, p) {
+    const image = pendingInfoImage;
+    if (!image) return;
+    if (pendingInfoPlacemark) {
+        map.geoObjects.remove(pendingInfoPlacemark);
+        pendingInfoPlacemark = null;
+    }
+    pendingInfoPlacemark = new ymaps.Placemark(coords, {}, {
+        iconLayout: 'default#image',
+        iconImageHref: `znaki/${image}`,
+        iconImageSize: [32, 32],
+        iconImageOffset: [-16, -16],
+        zIndex: 1100,
+        draggable: true
+    });
+    map.geoObjects.add(pendingInfoPlacemark);
+    $('addText').textContent = "Завершить установку знака";
+}
+
+async function finalizeInfoPoint() {
+    if (!pendingInfoPlacemark || !activePoint) return;
+    try {
+        const coords = pendingInfoPlacemark.geometry.getCoordinates();
+        const lat = f6(coords[0]);
+        const lon = f6(coords[1]);
+        const image = pendingInfoImage || '';
+        activePoint.info.push({ lat, lon, image });
+        map.geoObjects.remove(pendingInfoPlacemark);
+        pendingInfoPlacemark = null;
+        renderInfoPlacemarks(activePoint);
+        updateInfoPointsUI(activePoint);
+        pushHistorySnapshot();
+        stopAddingInfo();
+        await saveGist();
+        showToast("Изменения сохранены", "success");
+    } catch (e) {
+        showToast("Ошибка: " + e.message, "error");
+    }
 }
 
 function deleteInfoPoint(idx, p) {
@@ -1035,9 +1065,13 @@ function deleteInfoPoint(idx, p) {
 function stopAddingInfo() {
     isAddingInfo = false;
     pendingInfoImage = null;
+    if (pendingInfoPlacemark) {
+        map.geoObjects.remove(pendingInfoPlacemark);
+        pendingInfoPlacemark = null;
+    }
     $('addText').textContent = "Добавить новую точку";
     $('addMarkerBtn').classList.remove('active');
-    map.setCursor('grab');
+    if (map && map.setCursor) map.setCursor('grab');
 }
 
 function editInfoPoint(p, idx) {
@@ -1091,8 +1125,9 @@ const stopDrawingMode = async () => {
     await saveGist();
     showToast("Изменения сохранены", "success");
 };
-const handleAddBtnClick = () => {
-    if (isAddingInfo) { stopAddingInfo(); }
+const handleAddBtnClick = async () => {
+    if (isAddingInfo && pendingInfoPlacemark) { await finalizeInfoPoint(); }
+    else if (isAddingInfo) { stopAddingInfo(); }
     else if (isDrawing) { stopDrawingMode(); }
     else if (isAdd) { stopAdd(); }
     else { openCreatePointModal(); }
@@ -1370,8 +1405,7 @@ function selectZnak(file) {
     $('znakiModal').classList.remove('visible');
     $('addText').textContent = "Кликните на карте для установки знака";
     $('addMarkerBtn').classList.add('active');
-    map.setCursor('crosshair');
-    showToast('Кликните на карте, чтобы установить выбранный знак', 'info');
+    if (map && map.setCursor) map.setCursor('crosshair');
 }
 function closeZnakiSelector() {
     if (isAddingInfo) stopAddingInfo();
