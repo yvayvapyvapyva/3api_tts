@@ -230,9 +230,6 @@ function getNavIconSvg(col, txt, az, isEnd = false, isCurr = false, hasComm = fa
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}">
         <rect width="${s}" height="${s}" fill="transparent"/>
         ${isCurr ? `<circle cx="${c}" cy="${c}" r="${r + 3}" fill="none" stroke="#00FF00" stroke-width="2.5" opacity="0.9"/>` : ''}
-        <g transform="rotate(${az},${c},${c})">
-            <polygon points="${c},2 ${c+r},${c} ${c-r},${c}" fill="${col}" stroke="#000000" stroke-width="1" opacity="0.9"/>
-        </g>
         <circle cx="${c}" cy="${c}" r="${r}" fill="rgba(0,0,0,0.7)"/>
         <circle cx="${c}" cy="${c}" r="${r}" fill="${col}" opacity="0.3"/>
         <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${col}" stroke-width="1.5"/>
@@ -277,7 +274,6 @@ const clearRouteObjects = () => {
         map.geoObjects.remove(p.line); 
         map.geoObjects.remove(p.lineOutline); 
         if (p.lineAccent) map.geoObjects.remove(p.lineAccent);
-        if (p.endPlacemark) map.geoObjects.remove(p.endPlacemark);
         if (p.infoPlacemarks) p.infoPlacemarks.forEach(m => map.geoObjects.remove(m));
     });
     points = [];
@@ -309,7 +305,6 @@ const setActivePoint = (p, center = false) => {
         pt.line.options.set({ strokeOpacity: active ? 1 : 0.8, zIndex: active ? 2000 : 852 });
         pt.lineOutline.options.set({ strokeWidth: active ? 8 : 6, zIndex: active ? 1999 : 850 });
         pt.pm.options.set('zIndex', active ? 1800 : 1000);
-        if (pt.endPlacemark) pt.endPlacemark.options.set('zIndex', active ? 1600 : 800);
         updI(pt);
     });
     if (center && activePoint?.pts?.length) map.setCenter(activePoint.pts[0]);
@@ -407,16 +402,7 @@ ymaps.ready(async () => {
             return;
         }
         if(isAdd && tempNewPointData) {
-            const target = e.get('target');
             let coords = e.get('coords');
-            
-            for (const p of points) {
-                if (p.endPlacemark && target === p.endPlacemark) {
-                    coords = p.endPlacemark.geometry.getCoordinates();
-                    break;
-                }
-            }
-            
             const newPoint = addP(coords, { ...tempNewPointData });
             pushHistorySnapshot();
             updateSaveState();
@@ -554,14 +540,7 @@ async function proceedAsAdmin() {
             return;
         }
         if(isAdd && tempNewPointData) {
-            const target = e.get('target');
             let coords = e.get('coords');
-            for (const p of points) {
-                if (p.endPlacemark && target === p.endPlacemark) {
-                    coords = p.endPlacemark.geometry.getCoordinates();
-                    break;
-                }
-            }
             const newPoint = addP(coords, { ...tempNewPointData });
             pushHistorySnapshot();
             updateSaveState();
@@ -917,8 +896,7 @@ function addP(coords, data = null, silent = false) {
         pm: new ymaps.Placemark(coords, {}, { iconLayout: 'default#imageWithContent', iconImageSize: [40,40], iconImageOffset: [-20,-20], zIndex: 1000 }), 
         line: new ymaps.Polyline(ptsData, {}, { strokeWidth: 4, strokeOpacity: 1, zIndex: 852, interactive: false }), 
         lineOutline: new ymaps.Polyline(ptsData, {}, { strokeWidth: 6, strokeOpacity: 1, zIndex: 850, interactive: false }), 
-        lineAccent: null, 
-        endPlacemark: null 
+        lineAccent: null 
     };
     p.line.options.set('strokeColor', COLORS[p.color].hex);
     p.lineOutline.options.set('strokeColor', '#000000');
@@ -1162,7 +1140,7 @@ function toggleGpsMode() {
     );
 }
 
-const stopAdd = () => { isAdd = false; tempNewPointData = null; $('addText').textContent = "Добавить новую точку"; $('addMarkerBtn').classList.remove('active'); map.setCursor('grab'); points.forEach(p => { if (p.endPlacemark) p.endPlacemark.options.set('interactive', false); }); updateGpsBtnVisibility(); };
+const stopAdd = () => { isAdd = false; tempNewPointData = null; $('addText').textContent = "Добавить новую точку"; $('addMarkerBtn').classList.remove('active'); map.setCursor('grab'); updateGpsBtnVisibility(); };
 const updI = p => { 
     const isCurrent = p === activePoint;
     const hasComm = !!p.comm;
@@ -1184,39 +1162,10 @@ const updI = p => {
                 p.lineAccent = null;
             }
         }
-        
-        if (!p.endPlacemark) {
-            p.endPlacemark = new ymaps.Placemark([0, 0], {}, { iconLayout: 'default#image', iconImageSize: [30,30], iconImageOffset: [-15,-15], zIndex: 950 });
-            p.endPlacemark.events.add('click', (e) => {
-                if (isAdd && tempNewPointData) {
-                    e.stopPropagation();
-                    const coords = p.endPlacemark.geometry.getCoordinates();
-                    const newPoint = addP(coords, { ...tempNewPointData });
-                    pushHistorySnapshot();
-                    updateSaveState();
-                    setActivePoint(newPoint, false);
-                    startDrawingForPoint(newPoint, true);
-                    tempNewPointData = null;
-                    points.forEach(pt => { if (pt.endPlacemark) pt.endPlacemark.options.set('interactive', false); });
-                } else {
-                    e.stopPropagation();
-                }
-            });
-            p.endPlacemark.options.set('interactive', false);
-            map.geoObjects.add(p.endPlacemark);
-        }
-        const last = p.pts[p.pts.length - 1];
-        const prev = p.pts.length >= 2 ? p.pts[p.pts.length - 2] : last;
-        p.endPlacemark.geometry.setCoordinates(last);
-        p.endPlacemark.options.set('iconImageHref', getArrowEndSvg(COLORS[p.color].hex, calcAzimuth(prev, last)));
     } else {
         if (p.lineAccent) {
             map.geoObjects.remove(p.lineAccent);
             p.lineAccent = null;
-        }
-        if (p.endPlacemark) {
-            map.geoObjects.remove(p.endPlacemark);
-            p.endPlacemark = null;
         }
     }
 };
@@ -1292,7 +1241,6 @@ async function delPoint(p) {
     map.geoObjects.remove(p.line);
     map.geoObjects.remove(p.lineOutline);
     if(p.lineAccent) map.geoObjects.remove(p.lineAccent);
-    if(p.endPlacemark) map.geoObjects.remove(p.endPlacemark);
     clearInfoPlacemarks(p);
     if (activePoint === p) activePoint = null;
     recalculateIds();
@@ -1342,7 +1290,6 @@ async function handleModalSave() {
     }
     else if (modalMode === 'create') {
         isAdd = true;
-        points.forEach(p => { if (p.endPlacemark) p.endPlacemark.options.set('interactive', true); });
         $('addMarkerBtn').classList.add('active');
         $('addText').textContent = "Выберите место на карте";
         updateGpsBtnVisibility();
