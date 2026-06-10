@@ -576,6 +576,7 @@ function updateHud() {
 
     $('hudCmdNum').textContent = idx + 1;
     $('hudCmdTextInner').textContent = t.cmd;
+    $('hudCmdTextInner').style.opacity = APP._audioCache.has(t.cmd) ? '1' : '0.35';
     $('hudCmd').onclick = () => {
         playCommand(t.cmd);
         if (t.comm && t.comm.trim()) {
@@ -612,6 +613,7 @@ function updateHud() {
     }
 
     $('commentText').textContent = t.comm;
+    $('commentText').style.opacity = (t.comm && APP._audioCache.has(t.comm)) ? '1' : '0.35';
     $('commentBlock').classList.toggle('visible', t.comm && t.comm.trim() !== '');
 }
 
@@ -695,6 +697,7 @@ async function playTTS(text, voice = 'ru-RU-DmitryNeural') {
             const blob = new Blob([bytes], { type: 'audio/mp3' });
             const url = URL.createObjectURL(blob);
             APP._audioCache.set(text, url);
+            updateHud();
             APP.navAudio.src = url;
             await APP.navAudio.play().catch(() => {});
         }
@@ -799,10 +802,14 @@ function processRouteData(data) {
 async function precacheRouteAudio(data) {
     const cmdTexts = [...new Set(data.map(d => d.cmd).filter(t => t && t.trim()))];
     const commTexts = [...new Set(data.map(d => d.comm).filter(t => t && t.trim()))];
+    const totalUncached = cmdTexts.filter(t => !APP._audioCache.has(t)).length 
+                        + commTexts.filter(t => !APP._audioCache.has(t)).length;
+    if (totalUncached === 0) return;
     await Promise.all([
         _precacheBatch(cmdTexts, 'ru-RU-DmitryNeural'),
         _precacheBatch(commTexts, 'ru-RU-SvetlanaNeural'),
     ]);
+    updateHud();
 }
 async function _precacheBatch(texts, voice) {
     const uncached = texts.filter(t => !APP._audioCache.has(t));
