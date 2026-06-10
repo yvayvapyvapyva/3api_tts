@@ -74,12 +74,21 @@ def _ensure_table():
             session.execute_scheme(
                 "CREATE TABLE IF NOT EXISTS tts_cache ("
                 "cache_key Utf8,"
+                "params Utf8,"
                 "audio_data String,"
                 "created_at Timestamp,"
                 "PRIMARY KEY (cache_key)"
                 ");"
             )
         pool.retry_operation_sync(create)
+        try:
+            def add_column(session):
+                session.execute_scheme(
+                    "ALTER TABLE tts_cache ADD COLUMN params Utf8;"
+                )
+            pool.retry_operation_sync(add_column)
+        except Exception:
+            pass
         _table_ready = True
         return True
     except Exception:
@@ -106,7 +115,8 @@ def _get_cached(session, keys):
     decl = "\n".join(declarations)
     query = f"{decl}\nSELECT cache_key, audio_data FROM tts_cache WHERE {where};"
 
-    result = session.transaction().execute(query, parameters=params, commit_tx=True)
+    prepared = session.prepare(query)
+    result = session.transaction().execute(prepared, parameters=params, commit_tx=True)
     cached = {}
     for row in result[0].rows:
         cached[row["cache_key"]] = row["audio_data"].decode("utf-8")
@@ -116,29 +126,33 @@ def _get_cached(session, keys):
 def _save_batch(session, items):
     if not items:
         return
-    ts = int(datetime.utcnow().timestamp() * 1_000_000)
+    ts = datetime.utcnow()
     declarations = []
     params = {}
     value_rows = []
-    for i, (key, b64) in enumerate(items):
+    for i, (key, params_json, b64) in enumerate(items):
         pk = f"$k{i}"
+        pp = f"$p{i}"
         pd = f"$d{i}"
         pt = f"$t{i}"
         declarations.append(f"DECLARE {pk} AS Utf8;")
+        declarations.append(f"DECLARE {pp} AS Utf8;")
         declarations.append(f"DECLARE {pd} AS String;")
         declarations.append(f"DECLARE {pt} AS Timestamp;")
         params[pk] = key
+        params[pp] = params_json
         params[pd] = b64.encode("utf-8")
         params[pt] = ts
-        value_rows.append(f"({pk}, {pd}, {pt})")
+        value_rows.append(f"({pk}, {pp}, {pd}, {pt})")
     decl = "\n".join(declarations)
     values = ",\n".join(value_rows)
     query = (
         f"{decl}\n"
-        f"UPSERT INTO tts_cache (cache_key, audio_data, created_at)\n"
+        f"UPSERT INTO tts_cache (cache_key, params, audio_data, created_at)\n"
         f"VALUES\n{values};"
     )
-    session.transaction().execute(query, parameters=params, commit_tx=True)
+    prepared = session.prepare(query)
+    session.transaction().execute(prepared, parameters=params, commit_tx=True)
 
 
 def _cors(status, body):
@@ -185,12 +199,14 @@ def handler(event, context):
             return _cors(400, {"error": "all texts are empty"})
 
         use_cache = _ensure_table()
+        debug = {"use_cache": use_cache, "ydb_configured": bool(ydb and YDB_ENDPOINT and YDB_DATABASE)}
         audios = {}
         uncached_texts = []
         uncached_keys = []
 
         if use_cache:
             pool = _get_pool()
+            debug["pool_ok"] = pool is not None
             keys = {t: _cache_key(t, voice, pitch, volume) for t in texts}
 
             def query_cache(session):
@@ -198,6 +214,7 @@ def handler(event, context):
 
             try:
                 cached_map = pool.retry_operation_sync(query_cache)
+                debug["cached_found"] = len(cached_map)
                 for text in texts:
                     k = keys[text]
                     if k in cached_map:
@@ -205,7 +222,8 @@ def handler(event, context):
                     else:
                         uncached_texts.append(text)
                         uncached_keys.append(k)
-            except Exception:
+            except Exception as e:
+                debug["cache_query_error"] = str(e)
                 use_cache = False
                 uncached_texts = texts[:]
                 uncached_keys = []
@@ -228,15 +246,21 @@ def handler(event, context):
                 audios[text] = b64
                 if use_cache and uncached_keys:
                     idx = uncached_texts.index(text)
-                    new_items.append((uncached_keys[idx], b64))
+                    params_json = json.dumps({"text": text, "voice": voice, "pitch": pitch, "volume": volume}, ensure_ascii=False)
+                    new_items.append((uncached_keys[idx], params_json, b64))
+            debug["new_items"] = len(new_items)
 
+            result = {"audios": audios, "format": "mp3", "_debug": debug}
             if use_cache and new_items:
                 try:
                     pool.retry_operation_sync(lambda s: _save_batch(s, new_items))
-                except Exception:
-                    pass
+                    result["cache_saved"] = len(new_items)
+                except Exception as e:
+                    result["cache_error"] = str(e)
+        else:
+            result = {"audios": audios, "format": "mp3", "_debug": debug}
 
-        return _cors(200, {"audios": audios, "format": "mp3"})
+        return _cors(200, result)
 
     except Exception as e:
         return _cors(500, {"error": str(e)})
