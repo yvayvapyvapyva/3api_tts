@@ -675,7 +675,7 @@ async function playCommand(text) {
     await playTTS(text);
 }
 
-async function playTTS(text, voice = 'ru-RU-DmitryNeural') {
+async function playTTS(text, voice_type = 'command') {
     APP.navAudio.pause();
     const cached = APP._audioCache.get(text);
     if (cached) {
@@ -687,7 +687,7 @@ async function playTTS(text, voice = 'ru-RU-DmitryNeural') {
         const resp = await fetch(TTS_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ texts: [text], voice, pitch: '-10Hz' })
+            body: JSON.stringify({ batches: [{ voice_type, texts: [text] }] })
         });
         const data = await resp.json();
         if (data.audios && data.audios[text]) {
@@ -711,7 +711,7 @@ async function playComment(text) {
     APP._commentAudio.pause();
     const saved = APP.navAudio;
     APP.navAudio = APP._commentAudio;
-    await playTTS(text, 'ru-RU-SvetlanaNeural');
+    await playTTS(text, 'comment');
     APP.navAudio = saved;
 }
 
@@ -744,11 +744,11 @@ function navCheckTriggers() {
     }
 }
 
-function loadRouteFromJSON(data) {
-    processRouteData(data);
+async function loadRouteFromJSON(data) {
+    await processRouteData(data);
 }
 
-function processRouteData(data) {
+async function processRouteData(data) {
     startWakeLock();
     if (!data || !Array.isArray(data)) throw new Error('Неверный формат данных: ожидается массив');
     if (data.length === 0) throw new Error('Маршрут пуст');
@@ -795,30 +795,26 @@ function processRouteData(data) {
             }
         }, 100);
     }
-    precacheRouteAudio(data);
+    await precacheRouteAudio(data);
     updateRouteNameDisplay();
 }
 
 async function precacheRouteAudio(data) {
     const cmdTexts = [...new Set(data.map(d => d.cmd).filter(t => t && t.trim()))];
     const commTexts = [...new Set(data.map(d => d.comm).filter(t => t && t.trim()))];
-    const totalUncached = cmdTexts.filter(t => !APP._audioCache.has(t)).length 
-                        + commTexts.filter(t => !APP._audioCache.has(t)).length;
-    if (totalUncached === 0) return;
-    await Promise.all([
-        _precacheBatch(cmdTexts, 'ru-RU-DmitryNeural'),
-        _precacheBatch(commTexts, 'ru-RU-SvetlanaNeural'),
-    ]);
-    updateHud();
-}
-async function _precacheBatch(texts, voice) {
-    const uncached = texts.filter(t => !APP._audioCache.has(t));
-    if (!uncached.length) return;
+    const uncachedCmd = cmdTexts.filter(t => !APP._audioCache.has(t));
+    const uncachedComm = commTexts.filter(t => !APP._audioCache.has(t));
+    if (uncachedCmd.length + uncachedComm.length === 0) return;
     try {
         const resp = await fetch(TTS_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ texts: uncached, voice, pitch: '-10Hz' })
+            body: JSON.stringify({
+                batches: [
+                    { voice_type: 'command', texts: uncachedCmd },
+                    { voice_type: 'comment', texts: uncachedComm },
+                ]
+            })
         });
         const result = await resp.json();
         if (result.audios) {
@@ -831,8 +827,9 @@ async function _precacheBatch(texts, voice) {
             }
         }
     } catch (e) {
-        console.warn(`Batch precache error (${voice}):`, e);
+        console.warn('Precache error:', e);
     }
+    updateHud();
 }
 
 let wakeLockInterval = null;

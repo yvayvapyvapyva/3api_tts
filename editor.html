@@ -860,13 +860,13 @@ const toggleM = id => { const m = $(id); m.style.display = (m.style.display === 
 const closeD = () => { document.querySelectorAll('.color-dropdown').forEach(dr => dr.style.display = 'none'); $('dropdownOverlay').style.display = 'none'; };
 const toggleD = id => { const d = $(id), vis = d.style.display === 'flex'; closeD(); if(!vis) { d.style.display = 'flex'; $('dropdownOverlay').style.display = 'block'; } };
 const initColorDropdown = (id, cb) => Object.entries(COLORS).forEach(([n, d]) => { const r = Object.assign(document.createElement('div'), { className: 'color-row', onclick: (e) => { e.stopPropagation(); cb(d.hex, n); closeD(); }, innerHTML: `<div class="swatch" style="background:${d.hex}"></div><div style="font-weight:600;">${d.label}</div>` }); $(id).appendChild(r); });
-async function playText(text, voice = 'ru-RU-DmitryNeural') {
+async function playText(text, voice_type = 'command') {
     if (!text || !text.trim()) return;
     try {
         const resp = await fetch(TTS_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ texts: [text], voice })
+            body: JSON.stringify({ batches: [{ voice_type, texts: [text] }] })
         });
         const data = await resp.json();
         if (data.audios && data.audios[text]) {
@@ -1203,13 +1203,13 @@ function createPointCard(p, single = false) {
     const cmdInput = item.querySelector('.cmd-input');
     cmdInput.addEventListener('input', () => { p.cmd = cmdInput.value; updateSaveState(); });
     cmdInput.addEventListener('blur', () => { pushHistorySnapshot(); updateSaveState(); });
-    item.querySelector('.play-cmd-btn').onclick = (e) => { e.stopPropagation(); playText(cmdInput.value || p.cmd); };
+    item.querySelector('.play-cmd-btn').onclick = (e) => { e.stopPropagation(); playText(cmdInput.value || p.cmd, 'command'); };
     const comm = item.querySelector('.comm-input');
     const autoHeight = () => { comm.style.height = 'auto'; comm.style.height = comm.scrollHeight + 'px'; };
     comm.addEventListener('input', () => { p.comm = comm.value; autoHeight(); updateSaveState(); });
     comm.addEventListener('blur', () => { pushHistorySnapshot(); updateSaveState(); });
     setTimeout(autoHeight, 0);
-    item.querySelector('.play-comm-btn').onclick = e => { e.stopPropagation(); pushHistorySnapshot(); playText(comm.value || p.comm, 'ru-RU-SvetlanaNeural'); };
+    item.querySelector('.play-comm-btn').onclick = e => { e.stopPropagation(); pushHistorySnapshot(); playText(comm.value || p.comm, 'comment'); };
     item.querySelector('.color-indicator-btn').onclick = e => { e.stopPropagation(); activeListPoint = { point: p, card: item }; toggleD('listColorDropdown'); };
     item.onclick = e => {
         if (e.target.closest('.btn-item-action') || e.target.closest('.color-indicator-btn') || e.target.closest('.cmd-input') || e.target.closest('.play-cmd-btn') || e.target.closest('.comm-input') || e.target.closest('.play-comm-btn')) return;

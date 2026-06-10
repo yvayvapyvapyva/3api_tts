@@ -8,9 +8,10 @@ tts_function.py — Yandex Cloud Function для синтеза речи чер�
   ydb>=3.0.0
 
 Запрос:
-  POST {"texts": ["текст1", "текст2"], "voice": "ru-RU-DmitryNeural", "pitch": "-10Hz", "volume": "+30%"}
+  - {"voice_type": "command|comment", "texts": [...]}
+  - {"batches": [{"voice_type": "command|comment", "texts": [...]}, ...]}
 Ответ:
-  {"audios": {"текст1": "<base64>", "текст2": "<base64>"}, "format": "mp3"}
+  {"audios": {"текст": "<base64>", ...}, "format": "mp3"}
 """
 
 import asyncio
@@ -31,9 +32,13 @@ try:
 except ImportError:
     ydb = None
 
-VOICE = "ru-RU-DmitryNeural"
+VOICES = {
+    "command": "ru-RU-DmitryNeural",
+    "comment": "ru-RU-SvetlanaNeural",
+}
 PITCH = "-10Hz"
 VOLUME = "+30%"
+FORMAT = "audio-16khz-16kbitrate-mono-mp3"
 
 YDB_ENDPOINT = os.environ.get("YDB_ENDPOINT", "")
 YDB_DATABASE = os.environ.get("YDB_DATABASE", "")
@@ -95,8 +100,12 @@ def _ensure_table():
         return False
 
 
-def _cache_key(text, voice, pitch, volume):
-    raw = f"{text}\0{voice}\0{pitch}\0{volume}".encode("utf-8")
+def _resolve_voice(voice_type):
+    return VOICES.get(voice_type, VOICES["command"])
+
+
+def _cache_key(text, voice, pitch, volume, output_format):
+    raw = f"{text}\0{voice}\0{pitch}\0{volume}\0{output_format}".encode("utf-8")
     return hashlib.md5(raw).hexdigest()
 
 
@@ -168,13 +177,81 @@ def _cors(status, body):
     }
 
 
-async def _synthesize_one(text, voice, pitch, volume):
+async def _synthesize_one(text, voice, pitch, volume, output_format):
     result = b""
     communicate = edge_tts.Communicate(text, voice=voice, pitch=pitch, volume=volume)
+    communicate._format = output_format
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
             result += chunk["data"]
     return text, result
+
+
+def _process_batch(texts, voice_type, audios, use_cache, pool, debug):
+    """Synthesize or fetch from cache for one voice_type batch. Modifies audios in-place."""
+    voice = _resolve_voice(voice_type)
+    keys = {t: _cache_key(t, voice, PITCH, VOLUME, FORMAT) for t in texts}
+    cached_map = {}
+    uncached_texts = []
+    uncached_keys = []
+
+    if use_cache:
+        def query_cache(session):
+            return _get_cached(session, list(keys.values()))
+        try:
+            cached_map = pool.retry_operation_sync(query_cache)
+        except Exception as e:
+            debug.setdefault("cache_query_errors", []).append(str(e))
+            use_cache = False
+
+    cached_count = 0
+    for text in texts:
+        k = keys[text]
+        if k in cached_map:
+            audios[text] = cached_map[k]
+            cached_count += 1
+        else:
+            uncached_texts.append(text)
+            uncached_keys.append(k)
+
+    debug.setdefault("batch", []).append({
+        "voice_type": voice_type,
+        "total": len(texts),
+        "cached": cached_count,
+        "synthesized": len(uncached_texts),
+    })
+
+    if not uncached_texts:
+        return []
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        results = loop.run_until_complete(
+            asyncio.gather(*[_synthesize_one(t, voice, PITCH, VOLUME, FORMAT) for t in uncached_texts])
+        )
+    finally:
+        loop.close()
+
+    new_items = []
+    for text, audio_data in results:
+        b64 = base64.b64encode(audio_data).decode("utf-8")
+        audios[text] = b64
+        if use_cache:
+            idx = uncached_texts.index(text)
+            params_json = json.dumps(
+                {"text": text, "voice": voice, "pitch": PITCH, "volume": VOLUME, "format": FORMAT},
+                ensure_ascii=False,
+            )
+            new_items.append((uncached_keys[idx], params_json, b64))
+
+    if use_cache and new_items:
+        try:
+            pool.retry_operation_sync(lambda s: _save_batch(s, new_items))
+        except Exception as e:
+            debug.setdefault("cache_save_errors", []).append(str(e))
+
+    return new_items
 
 
 def handler(event, context):
@@ -186,81 +263,32 @@ def handler(event, context):
             return _cors(500, {"error": "edge-tts not installed"})
 
         body = json.loads(event.get("body", "{}"))
-        voice = body.get("voice", VOICE)
-        pitch = body.get("pitch", PITCH)
-        volume = body.get("volume", VOLUME)
-
-        texts = body.get("texts")
-        if not isinstance(texts, list) or not texts:
-            return _cors(400, {"error": "texts must be a non-empty array"})
-
-        texts = [t.strip() for t in texts if t and t.strip()]
-        if not texts:
-            return _cors(400, {"error": "all texts are empty"})
-
         use_cache = _ensure_table()
-        debug = {"use_cache": use_cache, "ydb_configured": bool(ydb and YDB_ENDPOINT and YDB_DATABASE)}
+        pool = _get_pool() if use_cache else None
+        debug = {"use_cache": use_cache}
+
         audios = {}
-        uncached_texts = []
-        uncached_keys = []
+        batches = body.get("batches")
+        if not isinstance(batches, list) or not batches:
+            return _cors(400, {"error": "batches must be a non-empty array"})
 
-        if use_cache:
-            pool = _get_pool()
-            debug["pool_ok"] = pool is not None
-            keys = {t: _cache_key(t, voice, pitch, volume) for t in texts}
+        debug["batches_received"] = [
+            {"voice_type": b.get("voice_type", "command"), "texts_count": len(b.get("texts", []) or [])}
+            for b in batches
+        ]
 
-            def query_cache(session):
-                return _get_cached(session, list(keys.values()))
+        for b in batches:
+            voice_type = b.get("voice_type", "command")
+            texts = b.get("texts", [])
+            if not isinstance(texts, list) or not texts:
+                continue
+            texts = [t.strip() for t in texts if t and t.strip()]
+            if not texts:
+                continue
+            _process_batch(texts, voice_type, audios, use_cache, pool, debug)
 
-            try:
-                cached_map = pool.retry_operation_sync(query_cache)
-                debug["cached_found"] = len(cached_map)
-                for text in texts:
-                    k = keys[text]
-                    if k in cached_map:
-                        audios[text] = cached_map[k]
-                    else:
-                        uncached_texts.append(text)
-                        uncached_keys.append(k)
-            except Exception as e:
-                debug["cache_query_error"] = str(e)
-                use_cache = False
-                uncached_texts = texts[:]
-                uncached_keys = []
-        else:
-            uncached_texts = texts[:]
-
-        if uncached_texts:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                results = loop.run_until_complete(
-                    asyncio.gather(*[_synthesize_one(t, voice, pitch, volume) for t in uncached_texts])
-                )
-            finally:
-                loop.close()
-
-            new_items = []
-            for text, audio_data in results:
-                b64 = base64.b64encode(audio_data).decode("utf-8")
-                audios[text] = b64
-                if use_cache and uncached_keys:
-                    idx = uncached_texts.index(text)
-                    params_json = json.dumps({"text": text, "voice": voice, "pitch": pitch, "volume": volume}, ensure_ascii=False)
-                    new_items.append((uncached_keys[idx], params_json, b64))
-            debug["new_items"] = len(new_items)
-
-            result = {"audios": audios, "format": "mp3", "_debug": debug}
-            if use_cache and new_items:
-                try:
-                    pool.retry_operation_sync(lambda s: _save_batch(s, new_items))
-                    result["cache_saved"] = len(new_items)
-                except Exception as e:
-                    result["cache_error"] = str(e)
-        else:
-            result = {"audios": audios, "format": "mp3", "_debug": debug}
-
-        return _cors(200, result)
+        print(json.dumps({"tts_cache": debug}))
+        return _cors(200, {"audios": audios, "format": "mp3"})
 
     except Exception as e:
         return _cors(500, {"error": str(e)})
