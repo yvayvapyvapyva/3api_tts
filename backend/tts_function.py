@@ -36,9 +36,12 @@ VOICES = {
     "command": "ru-RU-DmitryNeural",
     "comment": "ru-RU-SvetlanaNeural",
 }
-PITCH = "-10Hz"
+PITCHES = {
+    "command": "-10Hz",
+    "comment": "+0Hz",
+}
 VOLUME = "+30%"
-FORMAT = "audio-16khz-16kbitrate-mono-mp3"
+
 
 YDB_ENDPOINT = os.environ.get("YDB_ENDPOINT", "")
 YDB_DATABASE = os.environ.get("YDB_DATABASE", "")
@@ -104,8 +107,8 @@ def _resolve_voice(voice_type):
     return VOICES.get(voice_type, VOICES["command"])
 
 
-def _cache_key(text, voice, pitch, volume, output_format):
-    raw = f"{text}\0{voice}\0{pitch}\0{volume}\0{output_format}".encode("utf-8")
+def _cache_key(text, voice, pitch, volume):
+    raw = f"{text}\0{voice}\0{pitch}\0{volume}".encode("utf-8")
     return hashlib.md5(raw).hexdigest()
 
 
@@ -177,10 +180,9 @@ def _cors(status, body):
     }
 
 
-async def _synthesize_one(text, voice, pitch, volume, output_format):
+async def _synthesize_one(text, voice, pitch, volume):
     result = b""
     communicate = edge_tts.Communicate(text, voice=voice, pitch=pitch, volume=volume)
-    communicate._format = output_format
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
             result += chunk["data"]
@@ -190,7 +192,8 @@ async def _synthesize_one(text, voice, pitch, volume, output_format):
 def _process_batch(texts, voice_type, audios, use_cache, pool, debug):
     """Synthesize or fetch from cache for one voice_type batch. Modifies audios in-place."""
     voice = _resolve_voice(voice_type)
-    keys = {t: _cache_key(t, voice, PITCH, VOLUME, FORMAT) for t in texts}
+    pitch = PITCHES.get(voice_type, PITCHES["command"])
+    keys = {t: _cache_key(t, voice, pitch, VOLUME) for t in texts}
     cached_map = {}
     uncached_texts = []
     uncached_keys = []
@@ -228,7 +231,7 @@ def _process_batch(texts, voice_type, audios, use_cache, pool, debug):
     asyncio.set_event_loop(loop)
     try:
         results = loop.run_until_complete(
-            asyncio.gather(*[_synthesize_one(t, voice, PITCH, VOLUME, FORMAT) for t in uncached_texts])
+            asyncio.gather(*[_synthesize_one(t, voice, pitch, VOLUME) for t in uncached_texts])
         )
     finally:
         loop.close()
@@ -240,7 +243,7 @@ def _process_batch(texts, voice_type, audios, use_cache, pool, debug):
         if use_cache:
             idx = uncached_texts.index(text)
             params_json = json.dumps(
-                {"text": text, "voice": voice, "pitch": PITCH, "volume": VOLUME, "format": FORMAT},
+                {"text": text, "voice": voice, "pitch": pitch, "volume": VOLUME},
                 ensure_ascii=False,
             )
             new_items.append((uncached_keys[idx], params_json, b64))
