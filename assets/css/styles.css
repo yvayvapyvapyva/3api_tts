@@ -272,23 +272,20 @@ html, body {
 }
 
 #locateBtn {
-    top: calc(50px + env(safe-area-inset-top));
+    top: calc(76px + env(safe-area-inset-top));
     right: 12px;
 }
 
 #tiltBtn {
-    top: calc(114px + env(safe-area-inset-top));
+    top: calc(140px + env(safe-area-inset-top));
     left: 12px;
     font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.5px;
 }
 
-#tiltBtn.active {
-}
-
 #playBtn {
-    top: calc(178px + env(safe-area-inset-top));
+    top: calc(204px + env(safe-area-inset-top));
     left: 12px;
 }
 
@@ -348,7 +345,7 @@ html, body {
    ============================================ */
 #telemetryPanel {
     position: fixed;
-    top: calc(114px + env(safe-area-inset-top));
+    top: calc(140px + env(safe-area-inset-top));
     right: 12px;
     z-index: 9005;
     background: var(--glass-bg);
@@ -1222,7 +1219,7 @@ html, body {
 
 #layerSwitchBtn {
     position: fixed;
-    top: calc(50px + env(safe-area-inset-top));
+    top: calc(76px + env(safe-area-inset-top));
     left: 12px;
     z-index: 9010;
     pointer-events: auto;
@@ -1256,7 +1253,7 @@ html, body {
 
 #listPointsBtn {
     position: fixed;
-    top: calc(50px + env(safe-area-inset-top));
+    top: calc(76px + env(safe-area-inset-top));
     right: 12px;
     z-index: 9010;
     pointer-events: auto;
