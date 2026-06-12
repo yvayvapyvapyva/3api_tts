@@ -420,7 +420,17 @@ const MenuModule = {
         const frag = document.createDocumentFragment();
 
         if (this._categoryTree) {
-            this._renderTreeNode(this._categoryTree, frag, '');
+            if (this._filterCreator) {
+                // При фильтрации по создателю показываем маршруты без папки пользователя
+                const folders = Object.values(this._categoryTree.folders);
+                if (folders.length === 1) {
+                    this._renderTreeNode(folders[0], frag, '');
+                } else {
+                    this._renderTreeNode(this._categoryTree, frag, '');
+                }
+            } else {
+                this._renderTreeNode(this._categoryTree, frag, '');
+            }
         }
 
         if (this._userRoutes && this._userRoutes.length > 0) {
