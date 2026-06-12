@@ -663,7 +663,14 @@ const MenuModule = {
                 params.push(`m=${encodeURIComponent(routeName)}`);
             }
 
-            if (typeof vkBridge !== 'undefined') {
+            if (window.vkUser) {
+                const user = window.vkUser;
+                const city = user.city?.title || 'не указан';
+                const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
+                const userInfoStr = 'vk:' + [user.id, fullName, city].join(',');
+                const userInfoBase64 = btoa(encodeURIComponent(userInfoStr));
+                params.push(`i=${userInfoBase64}`);
+            } else if (typeof vkBridge !== 'undefined') {
                 try {
                     const userInfo = await Promise.race([
                         vkBridge.send('VKWebAppGetUserInfo'),
@@ -671,7 +678,6 @@ const MenuModule = {
                             setTimeout(() => reject(new Error('timeout')), 1000)
                         )
                     ]);
-                    
                     if (userInfo) {
                         const city = userInfo.city?.title || 'не указан';
                         const fullName = [userInfo.first_name, userInfo.last_name].filter(Boolean).join(' ');
