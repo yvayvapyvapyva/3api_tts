@@ -236,7 +236,8 @@ const MenuModule = {
     _getFormattedDisplayName() {
         const name = this._getUserDisplayName() || this._detectUserId() || '';
         if (window.tgUser) {
-            return `${name} (tg)`;
+            const uname = window.tgUser.username || '';
+            return uname ? `${name} (tg: @${uname})` : `${name} (tg)`;
         }
         if (window.vkUser) {
             return `${name} (vk: id${window.vkUser.id})`;
