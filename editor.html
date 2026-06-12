@@ -901,7 +901,8 @@ const saveRouteMeta = async () => {
 
 const confirmDeleteRoute = () => {
     if (!settingsRouteName) return;
-    $('confirmDeleteText').textContent = `Вы уверены, что хотите удалить маршрут "${settingsRouteName}"?`;
+    const displayName = currentRouteMeta.name || settingsRouteName;
+    $('confirmDeleteText').textContent = `Вы уверены, что хотите удалить маршрут "${displayName}"?`;
     toggleM('settingsRouteModal');
     setTimeout(() => toggleM('confirmDeleteModal'), 100);
 };
