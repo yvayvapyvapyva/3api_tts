@@ -444,7 +444,7 @@ const MenuModule = {
             el.className = 'category-folder';
 
             const header = document.createElement('div');
-            header.className = 'category-header' + (isExpanded ? ' expanded' : '');
+            header.className = 'category-header' + (isExpanded ? ' expanded' : '') + (!path ? ' root' : '');
             header.innerHTML = `
                 <span class="category-icon">${isExpanded ? '📂' : '📁'}</span>
                 <span class="category-name">${this._escape(name)}</span>
