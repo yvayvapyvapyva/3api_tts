@@ -81,10 +81,10 @@ def verify_tg_init_data(init_data):
 def execute_list_routes_public(session):
     """Публичный список маршрутов (только visible=true)"""
     query = """
-        SELECT DISTINCT id, m, name, category, description
+        SELECT DISTINCT id, m, name, description
         FROM roads
         WHERE visible = true AND name IS NOT NULL
-        ORDER BY category, name;
+        ORDER BY name;
     """
     prepared_query = session.prepare(query)
     return session.transaction().execute(prepared_query, commit_tx=True)
@@ -94,7 +94,7 @@ def execute_list_user_routes(session, id_param):
     """Список маршрутов пользователя"""
     query = """
         DECLARE $id AS Utf8;
-        SELECT m, name, category FROM roads WHERE id = $id;
+        SELECT m, name FROM roads WHERE id = $id;
     """
     prepared_query = session.prepare(query)
     return session.transaction().execute(prepared_query, {'$id': str(id_param)}, commit_tx=True)
@@ -130,14 +130,13 @@ def execute_delete_route(session, id_param, m_param):
     )
 
 
-def execute_upsert_route(session, id_param, m_param, json_data, category=''):
+def execute_upsert_route(session, id_param, m_param, json_data):
     """Создать/обновить маршрут"""
     query = """
         DECLARE $id AS Utf8;
         DECLARE $m AS Utf8;
         DECLARE $json AS Json;
-        DECLARE $category AS Utf8;
-        UPSERT INTO roads (id, m, json, category) VALUES ($id, $m, $json, $category);
+        UPSERT INTO roads (id, m, json) VALUES ($id, $m, $json);
     """
     prepared_query = session.prepare(query)
     return session.transaction().execute(
@@ -145,14 +144,13 @@ def execute_upsert_route(session, id_param, m_param, json_data, category=''):
         {
             '$id': str(id_param),
             '$m': str(m_param),
-            '$json': json.dumps(json_data) if not isinstance(json_data, str) else json_data,
-            '$category': str(category)
+            '$json': json.dumps(json_data) if not isinstance(json_data, str) else json_data
         },
         commit_tx=True
     )
 
 
-def execute_update_route_meta(session, id_param, m_param, name, description, visible, category=''):
+def execute_update_route_meta(session, id_param, m_param, name, description, visible):
     """Обновить метаданные маршрута"""
     query = """
         DECLARE $id AS Utf8;
@@ -160,8 +158,7 @@ def execute_update_route_meta(session, id_param, m_param, name, description, vis
         DECLARE $name AS Utf8;
         DECLARE $description AS Utf8;
         DECLARE $visible AS Bool;
-        DECLARE $category AS Utf8;
-        UPDATE roads SET name = $name, description = $description, visible = $visible, category = $category WHERE id = $id AND m = $m;
+        UPDATE roads SET name = $name, description = $description, visible = $visible WHERE id = $id AND m = $m;
     """
     prepared_query = session.prepare(query)
     return session.transaction().execute(
@@ -171,14 +168,13 @@ def execute_update_route_meta(session, id_param, m_param, name, description, vis
             '$m': str(m_param),
             '$name': str(name),
             '$description': str(description),
-            '$category': str(category),
             '$visible': bool(visible)
         },
         commit_tx=True
     )
 
 
-def execute_rename_route(session, id_param, old_m_param, new_m_param, name, description, visible, category=''):
+def execute_rename_route(session, id_param, old_m_param, new_m_param, name, description, visible):
     """Переименовать маршрут (скопировать с новым m и удалить старый)"""
     # Сначала UPSERT с новым m (это также скопирует данные json)
     query_upsert = """
@@ -188,14 +184,13 @@ def execute_rename_route(session, id_param, old_m_param, new_m_param, name, desc
         DECLARE $name AS Utf8;
         DECLARE $description AS Utf8;
         DECLARE $visible AS Bool;
-        DECLARE $category AS Utf8;
         
         $json = (
             SELECT json FROM roads WHERE id = $id AND m = $old_m
         );
         
-        UPSERT INTO roads (id, m, json, name, description, visible, category)
-        VALUES ($id, $new_m, $json, $name, $description, $visible, $category);
+        UPSERT INTO roads (id, m, json, name, description, visible)
+        VALUES ($id, $new_m, $json, $name, $description, $visible);
         
         DELETE FROM roads WHERE id = $id AND m = $old_m;
     """
@@ -208,8 +203,7 @@ def execute_rename_route(session, id_param, old_m_param, new_m_param, name, desc
             '$new_m': str(new_m_param),
             '$name': str(name),
             '$description': str(description),
-            '$visible': bool(visible),
-            '$category': str(category)
+            '$visible': bool(visible)
         },
         commit_tx=True
     )
@@ -220,7 +214,7 @@ def execute_get_route_meta(session, id_param, m_param):
     query = """
         DECLARE $id AS Utf8;
         DECLARE $m AS Utf8;
-        SELECT name, description, visible, category FROM roads WHERE id = $id AND m = $m;
+        SELECT name, description, visible FROM roads WHERE id = $id AND m = $m;
     """
     prepared_query = session.prepare(query)
     return session.transaction().execute(
@@ -269,7 +263,6 @@ def handler(event, context):
                     'id': row.id,
                     'm': row.m,
                     'name': row.name,
-                    'category': row.category if hasattr(row, 'category') and row.category else '',
                     'description': row.description if hasattr(row, 'description') and row.description else ''
                 })
             return create_response(200, routes, is_public=True)
@@ -338,7 +331,7 @@ def handler(event, context):
         # Список маршрутов пользователя
         if action == 'list':
             result = get_pool().retry_operation_sync(execute_list_user_routes, id_param=user_id)
-            routes = [{'m': row.m, 'name': row.name if hasattr(row, 'name') and row.name else '', 'category': row.category if hasattr(row, 'category') and row.category else ''} for row in result[0].rows]
+            routes = [{'m': row.m, 'name': row.name if hasattr(row, 'name') and row.name else ''} for row in result[0].rows]
             return create_response(200, {'routes': routes})
 
         # Получение маршрута (защищенное)
@@ -383,10 +376,9 @@ def handler(event, context):
                     body_data = {}
 
             new_json = body_data.get('data', [])
-            route_category = body_data.get('category', '')
 
             try:
-                get_pool().retry_operation_sync(execute_upsert_route, id_param=user_id, m_param=m_val, json_data=new_json, category=route_category)
+                get_pool().retry_operation_sync(execute_upsert_route, id_param=user_id, m_param=m_val, json_data=new_json)
             except Exception as se:
                 return create_response(500, {'error': 'save_failed', 'details': str(se)})
 
@@ -402,7 +394,6 @@ def handler(event, context):
             row = result[0].rows[0]
             return create_response(200, {
                 'name': row.name if hasattr(row, 'name') else '',
-                'category': row.category if hasattr(row, 'category') and row.category else '',
                 'description': row.description if hasattr(row, 'description') else '',
                 'visible': row.visible if hasattr(row, 'visible') else False
             })
@@ -420,16 +411,15 @@ def handler(event, context):
             name = body_data.get('name', '')
             description = body_data.get('description', '')
             visible = body_data.get('visible', False)
-            category = body_data.get('category', '')
             new_m = body_data.get('new_m', '')
 
             try:
                 if new_m and new_m != m_val:
                     # Переименование маршрута
-                    get_pool().retry_operation_sync(execute_rename_route, id_param=user_id, old_m_param=m_val, new_m_param=new_m, name=name, description=description, visible=visible, category=category)
+                    get_pool().retry_operation_sync(execute_rename_route, id_param=user_id, old_m_param=m_val, new_m_param=new_m, name=name, description=description, visible=visible)
                     return create_response(200, {'status': 'meta_saved', 'new_m': new_m})
                 else:
-                    get_pool().retry_operation_sync(execute_update_route_meta, id_param=user_id, m_param=m_val, name=name, description=description, visible=visible, category=category)
+                    get_pool().retry_operation_sync(execute_update_route_meta, id_param=user_id, m_param=m_val, name=name, description=description, visible=visible)
             except Exception as se:
                 raise
 

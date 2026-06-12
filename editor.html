@@ -41,15 +41,14 @@
 <div id="listColorDropdown" class="color-dropdown"></div>
 
 <div id="pointsOrderModal" onclick="if(event.target===this) toggleM('pointsOrderModal')"><div class="modal-sheet" style="gap:0;"><div class="modal-header" style="padding:16px 20px;border-bottom:0.5px solid rgba(255,255,255,0.08);flex-shrink:0;"><h3 id="orderModalTitle" style="margin:0;font-size:18px;font-weight:700;">Маршрут</h3><button class="close-circle" onclick="toggleM('pointsOrderModal')">✕</button></div><div id="pointsSortList" style="flex:1;overflow-y:auto;padding:14px;"></div><div style="padding:16px 20px;border-top:0.5px solid rgba(255,255,255,0.08);flex-shrink:0;"><button id="saveInListBtn" class="btn-action" onclick="handleModalSave()"><span id="saveBtnText">Готово</span></button></div></div></div>
-<div id="settingsModal" onclick="if(event.target===this) toggleM('settingsModal')"><div class="modal-sheet"><div class="modal-header" style="padding:16px 20px;border-bottom:0.5px solid rgba(255,255,255,0.08);flex-shrink:0;"><span id="settingsTitle" style="font-size:18px;font-weight:700;">Ваши маршруты</span><button class="close-circle" onclick="toggleM('settingsModal')">✕</button></div><div class="settings-body" id="routesList" style="padding:14px 14px 24px;overflow-y:auto;display:flex;flex-direction:column;flex:1;min-height:0;"></div><button class="settings-tool-btn settings-tool-btn-green" onclick="openCreateRouteModal()" style="width:100%;flex-shrink:0;">➕ Создать новый маршрут</button></div></div>
+<div id="settingsModal" onclick="if(event.target===this) toggleM('settingsModal')"><div class="modal-sheet"><div class="modal-header" style="padding:16px 20px;border-bottom:0.5px solid rgba(255,255,255,0.08);flex-shrink:0;"><span id="settingsTitle" style="font-size:18px;font-weight:700;">Ваши маршруты</span><button class="close-circle" onclick="toggleM('settingsModal')">✕</button></div><div class="settings-body" id="routesList" style="padding:14px 14px 24px;overflow-y:auto;display:flex;flex-direction:column;flex:1;min-height:0;"></div><div style="display:flex;gap:8px;flex-shrink:0;padding:0 0 8px;"><button class="settings-tool-btn settings-tool-btn-green" onclick="openCreateRouteModal()" style="flex:1;">➕ Маршрут</button><button class="settings-tool-btn" onclick="window.createFolder()" style="flex:1;background:rgba(0,122,255,0.25);border-color:rgba(0,122,255,0.4);">📁 Папка</button></div></div></div>
 <div id="createRouteModal" onclick="if(event.target===this) toggleM('createRouteModal')"><div class="modal-sheet modal-sheet-compact"><h3 class="modal-title">Новый маршрут</h3><div class="input-wrapper" style="padding:4px;border-radius:14px;"><input type="text" id="newRouteNameInput" placeholder="Название маршрута" style="width:100%;padding:14px;border:none;font-size:17px;outline:none;background:transparent;color:#f5f7fa;font-family:inherit;"></div><div style="display:flex;gap:12px;"><button class="btn-action" onclick="toggleM('createRouteModal')" style="flex:1;">Отмена</button><button class="btn-action" onclick="handleCreateNew()" style="flex:1;background:linear-gradient(180deg, rgba(52,199,89,0.9), rgba(40,160,70,0.85));">Создать</button></div></div></div>
 <div id="settingsRouteModal" onclick="if(event.target===this) toggleM('settingsRouteModal')"><div class="modal-sheet" style="gap:0;padding:0;"><div class="modal-header" style="padding:16px 20px;border-bottom:0.5px solid rgba(255,255,255,0.08);flex-shrink:0;"><h3 id="settingsRouteTitle" style="margin:0;font-size:18px;font-weight:700;">Настройки маршрута</h3><button class="close-circle" onclick="toggleM('settingsRouteModal')">✕</button></div><div style="display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1;padding:20px;">
 <div style="font-size:12px;color:#8b8f99;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Имя маршрута</div>
 <div class="input-wrapper" style="padding:3px;border-radius:12px;margin-bottom:8px;"><input type="text" id="routeDisplayName" placeholder="Введите имя маршрута" style="width:100%;padding:10px;border:none;font-size:16px;outline:none;background:transparent;color:#f5f7fa;font-family:inherit;"></div>
 <div style="font-size:12px;color:#8b8f99;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Описание маршрута</div>
 <div class="input-wrapper" style="padding:3px;border-radius:12px;margin-bottom:8px;"><textarea id="routeDescription" placeholder="Введите описание маршрута" rows="2" style="width:100%;padding:10px;border:none;font-size:16px;outline:none;background:transparent;color:#f5f7fa;font-family:inherit;resize:none;min-height:56px;"></textarea></div>
-<div style="font-size:12px;color:#8b8f99;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Категория</div>
-<div class="input-wrapper" style="padding:3px;border-radius:12px;margin-bottom:8px;"><input type="text" id="routeCategory" placeholder="Категория (необязательно)" style="width:100%;padding:10px;border:none;font-size:16px;outline:none;background:transparent;color:#f5f7fa;font-family:inherit;"></div>
+
 <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;background:rgba(25,25,30,0.7);border:1px solid rgba(255,255,255,0.25);">
 <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;">
 <input type="checkbox" id="routeVisible" style="width:20px;height:20px;accent-color:#34C759;cursor:pointer;">
@@ -121,6 +120,9 @@ let map, points = [], cur = null, isAdd = false, isDrawing = false, isAddingInfo
 let historyStack = [], historyIndex = -1, lastSavedSnapshot = "[]", toastTimer = null;
 let pendingDeletePoint = null;
 let pendingDeleteSingle = false;
+let _currentFolderPrefix = null;
+let _emptyFolders = [];
+let _expandedFolders = new Set();
 let pendingInfoImage = null;
 let pendingInfoPlacemark = null;
 
@@ -581,45 +583,170 @@ const refreshFileList = async () => {
         showToast('Ошибка загрузки маршрутов', 'error');
     }
 };
+function countNodeRoutes(node) {
+    let c = node.routes.length;
+    for (const f of Object.values(node.folders)) c += countNodeRoutes(f);
+    return c;
+}
+
+function buildRouteTree() {
+    const root = { folders: {}, routes: [] };
+    for (const route of settingsRouteFiles) {
+        const key = typeof route === 'string' ? route : (route.m || '');
+        const fullPath = typeof route === 'string' ? route : getRouteName(route);
+        const parts = fullPath.split('/').map(s => s.trim()).filter(Boolean);
+        const leafName = parts.pop() || fullPath;
+        let node = root;
+        for (const part of parts) {
+            if (!node.folders[part]) node.folders[part] = { folders: {}, routes: [] };
+            node = node.folders[part];
+        }
+        node.routes.push({ key, name: leafName, fullPath });
+    }
+    return root;
+}
+
+function renderTreeLevel(node, pathPrefix, container) {
+    const frag = document.createDocumentFragment();
+    for (const [name, sub] of Object.entries(node.folders).sort(([a], [b]) => a.localeCompare(b))) {
+        const folderPath = pathPrefix ? pathPrefix + '/' + name : name;
+        const total = countNodeRoutes(sub);
+        const isExpanded = _expandedFolders.has(folderPath);
+        const el = document.createElement('div');
+        el.className = 'tree-folder' + (isExpanded ? ' expanded' : '');
+        el.setAttribute('data-path', folderPath);
+        el.innerHTML = `<div class="tree-folder-header" style="display:flex;align-items:center;gap:6px;padding:10px 12px;border-radius:12px;cursor:pointer;margin-bottom:2px;">
+            <span class="tree-arrow" style="font-size:12px;width:18px;text-align:center;flex-shrink:0;">${isExpanded ? '▼' : '▶'}</span>
+            <span class="tree-folder-name" style="font-size:15px;font-weight:600;flex:1;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
+            <span style="font-size:12px;color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:8px;flex-shrink:0;">${total}</span>
+        </div>
+        <div class="tree-children" style="padding-left:12px;${isExpanded ? '' : 'display:none;'}"></div>`;
+        
+        el.querySelector('.tree-folder-header').addEventListener('click', () => {
+            const ch = el.querySelector('.tree-children');
+            const expanded = ch.style.display !== 'none';
+            ch.style.display = expanded ? 'none' : 'block';
+            el.querySelector('.tree-arrow').textContent = expanded ? '▶' : '▼';
+            el.classList.toggle('expanded', !expanded);
+            if (expanded) _expandedFolders.delete(folderPath);
+            else _expandedFolders.add(folderPath);
+        });
+        
+        el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag-over'); });
+        el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+        el.addEventListener('drop', e => {
+            e.preventDefault(); el.classList.remove('drag-over');
+            const routeKey = e.dataTransfer.getData('text/plain');
+            if (routeKey) moveRouteToFolder(routeKey, folderPath);
+        });
+        
+        const childContainer = el.querySelector('.tree-children');
+        renderTreeLevel(sub, folderPath, childContainer);
+        frag.appendChild(el);
+    }
+    
+    for (const route of node.routes) {
+        const isActive = route.key === curRoute;
+        const el = document.createElement('div');
+        el.className = 'tree-route-item' + (isActive ? ' active' : '');
+        el.draggable = true;
+        el.setAttribute('data-key', route.key);
+        el.style.cssText = 'display:flex;align-items:center;gap:6px;padding:10px 12px;border-radius:12px;margin-bottom:2px;cursor:pointer;' +
+            (isActive ? 'background:rgba(0,122,255,0.2);border:1px solid rgba(0,122,255,0.35);' :
+             'background:rgba(255,255,255,0.04);');
+        el.innerHTML = `<span style="font-size:14px;width:18px;text-align:center;flex-shrink:0;color:rgba(255,255,255,0.4);">📄</span>
+            <span class="tree-route-name" style="flex:1;font-size:15px;font-weight:500;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${route.name}</span>
+            <span class="tree-gear" style="flex-shrink:0;font-size:15px;cursor:pointer;padding:4px 6px;border-radius:8px;opacity:0.5;transition:opacity 0.15s;">⚙️</span>`;
+        
+        el.addEventListener('click', e => {
+            if (e.target.closest('.tree-gear')) return;
+            if (el.classList.contains('loading')) return;
+            el.classList.add('loading');
+            loadRoute(route.key).then(() => renderSettingsFileList());
+        });
+        el.querySelector('.tree-gear').addEventListener('click', e => {
+            e.stopPropagation();
+            openRouteSettings(route.key);
+        });
+        el.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('text/plain', route.key);
+            el.classList.add('dragging');
+        });
+        el.addEventListener('dragend', () => {
+            el.classList.remove('dragging');
+            document.querySelectorAll('.drag-over').forEach(d => d.classList.remove('drag-over'));
+        });
+        frag.appendChild(el);
+    }
+    container.appendChild(frag);
+}
+
+async function moveRouteToFolder(routeKey, folderPath) {
+    try {
+        const meta = await callYcFunction('get_meta', { m: routeKey });
+        const nm = meta.name || routeKey;
+        const parts = nm.split('/').filter(Boolean);
+        const leafName = parts.pop() || nm;
+        const newName = folderPath + '/' + leafName;
+        await callYcFunction('save_meta', { m: routeKey }, { name: newName, description: meta.description || '', visible: meta.visible !== undefined ? meta.visible : false });
+        if (curRoute === routeKey) {
+            currentRouteMeta.name = newName;
+        }
+        refreshFileList();
+        showToast('Маршрут перемещён', 'success');
+    } catch (e) {
+        showToast('Ошибка перемещения', 'error');
+    }
+}
+
+const openCreateRouteModal = (folderPrefix) => {
+    _currentFolderPrefix = folderPrefix || null;
+    toggleM('createRouteModal');
+    $('newRouteNameInput').value = '';
+    setTimeout(() => $('newRouteNameInput').focus(), 100);
+};
+
 const renderSettingsFileList = () => {
     const list = $('routesList');
     if (!list) return;
     list.innerHTML = '';
-    if (settingsRouteFiles.length === 0) {
+    if (settingsRouteFiles.length === 0 && _emptyFolders.length === 0) {
         list.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#8b8f99;font-size:15px;">У вас пока нет маршрутов.<br>Создайте первый маршрут.</div>';
-    } else {
-        settingsRouteFiles.forEach(route => {
-            const routeKey = typeof route === 'string' ? route : (route.m || '');
-            const displayName = typeof route === 'string' ? route : (route.name || route.m || '');
-            const item = document.createElement('div');
-            item.className = 'route-list-item' + (routeKey === curRoute ? ' active' : '');
-            
-            const nameBtn = document.createElement('button');
-            nameBtn.textContent = displayName;
-            nameBtn.style.cssText = 'flex:1;background:transparent;border:none;color:#fff;font-size:16px;font-weight:600;cursor:pointer;padding:14px 8px;margin:0;outline:none;width:100%;text-align:left;height:100%;';
-            nameBtn.onclick = () => {
-                if (nameBtn.textContent === 'Загрузка...') return;
-                nameBtn.textContent = 'Загрузка...';
-                loadRoute(routeKey).then(() => {
-                    nameBtn.textContent = displayName;
-                });
-            };
-            
-            const settingsWrapper = document.createElement('div');
-            settingsWrapper.style.cssText = 'background:linear-gradient(180deg, rgba(50,50,58,0.8), rgba(35,35,42,0.7));border:1px solid rgba(255,255,255,0.2);border-radius:12px;padding:4px;margin-right:4px;cursor:pointer;';
-            
-            const settingsBtn = document.createElement('button');
-            settingsBtn.innerHTML = '⚙️';
-            settingsBtn.style.cssText = 'background:transparent;border:none;font-size:18px;cursor:pointer;padding:4px;';
-            settingsBtn.onclick = (e) => { e.stopPropagation(); openRouteSettings(routeKey); };
-            
-            settingsWrapper.appendChild(settingsBtn);
-            item.appendChild(nameBtn);
-            item.appendChild(settingsWrapper);
-            list.appendChild(item);
-        });
+        $('settingsTitle').textContent = `${window.USER_NAME || window.USER_ID} - маршрутов:0`;
+        return;
     }
-    const userId = window.USER_ID ;
+    const tree = buildRouteTree();
+    renderTreeLevel(tree, '', list);
+    const existingPaths = new Set();
+    const collectPaths = (node, prefix) => {
+        for (const [name, child] of Object.entries(node.folders)) {
+            const fp = prefix ? prefix + '/' + name : name;
+            existingPaths.add(fp);
+            collectPaths(child, fp);
+        }
+    };
+    collectPaths(tree, '');
+    for (const folderName of _emptyFolders) {
+        if (existingPaths.has(folderName)) continue;
+        const fp = folderName;
+        const el = document.createElement('div');
+        el.className = 'tree-folder expanded';
+        el.setAttribute('data-path', fp);
+        el.innerHTML = `<div class="tree-folder-header" style="display:flex;align-items:center;gap:6px;padding:10px 12px;border-radius:12px;cursor:default;margin-bottom:2px;opacity:0.6;">
+            <span style="font-size:12px;width:18px;text-align:center;flex-shrink:0;">📁</span>
+            <span style="font-size:15px;font-weight:600;flex:1;color:#fff;">${folderName}</span>
+            <span style="font-size:12px;color:rgba(255,255,255,0.3);">пусто</span>
+        </div>`;
+        el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag-over'); });
+        el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+        el.addEventListener('drop', e => {
+            e.preventDefault(); el.classList.remove('drag-over');
+            const routeKey = e.dataTransfer.getData('text/plain');
+            if (routeKey) moveRouteToFolder(routeKey, fp);
+        });
+        list.appendChild(el);
+    }
+    const userId = window.USER_ID;
     $('settingsTitle').textContent = `${window.USER_NAME || userId} - маршрутов:${settingsRouteFiles.length}`;
 };
 
@@ -644,42 +771,36 @@ const updateVisibility = () => {
     updateSaveState();
 };
 
-const openCreateRouteModal = () => {
-    toggleM('createRouteModal');
-    $('newRouteNameInput').value = '';
-    setTimeout(() => $('newRouteNameInput').focus(), 100);
+const generateId = () => {
+    if (crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
 };
 
-const generateSlug = (text) => {
-    const ruToEn = {
-        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i',
-        'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't',
-        'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '', 'ы': 'y', 'ь': '',
-        'э': 'e', 'ю': 'yu', 'я': 'ya'
-    };
-    return text.toLowerCase()
-        .split('')
-        .map(char => ruToEn[char] || char)
-        .join('')
-        .replace(/[^a-z0-9]/g, '_')
-        .replace(/_+/g, '_')
-        .replace(/^_|_$/g, '') || 'route';
+const getRouteName = (route) => {
+    if (!route) return '';
+    return route.name || route.m || '';
 };
 
 const handleCreateNew = async () => {
-    const name = $('newRouteNameInput').value.trim();
+    let name = $('newRouteNameInput').value.trim();
     if(!name) return;
+
+    if (_currentFolderPrefix) {
+        name = _currentFolderPrefix + '/' + name;
+    }
     
-    const slug = generateSlug(name);
-    if(!slug) return;
+    const id = generateId();
     
     toggleM('createRouteModal');
     
     try {
-        await callYcFunction('save', { m: slug }, { data: [] });
-        await callYcFunction('save_meta', { m: slug }, { name: name, description: '', visible: false, category: '' });
+        await callYcFunction('save', { m: id }, { data: [] });
+        await callYcFunction('save_meta', { m: id }, { name, description: '', visible: false });
         refreshFileList(); 
-        loadRoute(slug); 
+        loadRoute(id); 
         showToast("Маршрут создан", 'success'); 
     } catch (e) {
         
@@ -714,11 +835,10 @@ const loadRoute = async (routeName) => {
             currentRouteMeta = {
                 name: meta.name || routeName,
                 description: meta.description || '',
-                visible: meta.visible !== undefined ? meta.visible : false,
-                category: meta.category || ''
+                visible: meta.visible !== undefined ? meta.visible : false
             };
         } catch (e) {
-            currentRouteMeta = { name: routeName, description: '', visible: false, category: '' };
+            currentRouteMeta = { name: routeName, description: '', visible: false };
         }
         
         updateVisibility();
@@ -734,31 +854,27 @@ const loadRoute = async (routeName) => {
 let _shareRouteName = null;
 
 let settingsRouteName = null;
-let currentRouteMeta = { name: '', description: '', visible: false, category: '' };
+let currentRouteMeta = { name: '', description: '', visible: false };
 
 const openRouteSettings = async (routeName) => {
     settingsRouteName = routeName;
     try {
         const meta = await callYcFunction('get_meta', { m: routeName });
-        const displayName = meta.name || routeName;
-        $('settingsRouteTitle').textContent = `Маршрут "${displayName}"`;
         currentRouteMeta = {
-            name: meta.name || '',
+            name: meta.name || routeName,
             description: meta.description || '',
-            visible: meta.visible !== undefined ? meta.visible : false,
-            category: meta.category || ''
+            visible: meta.visible !== undefined ? meta.visible : false
         };
+        $('settingsRouteTitle').textContent = `Маршрут "${currentRouteMeta.name}"`;
         $('routeDisplayName').value = currentRouteMeta.name;
         $('routeDescription').value = currentRouteMeta.description;
         $('routeVisible').checked = currentRouteMeta.visible;
-        $('routeCategory').value = currentRouteMeta.category;
     } catch (e) {
         
-        currentRouteMeta = { name: '', description: '', visible: false, category: '' };
+        currentRouteMeta = { name: '', description: '', visible: false };
         $('routeDisplayName').value = '';
         $('routeDescription').value = '';
         $('routeVisible').checked = false;
-        $('routeCategory').value = '';
     }
     toggleM('settingsRouteModal');
 };
@@ -768,29 +884,20 @@ const saveRouteMeta = async () => {
     const name = $('routeDisplayName').value.trim();
     const description = $('routeDescription').value.trim();
     const visible = $('routeVisible').checked;
-    const category = $('routeCategory').value.trim();
 
     if (!name) { showToast('Введите имя маршрута', 'error'); return; }
 
-    const newSlug = generateSlug(name);
-    const isRenaming = newSlug !== settingsRouteName;
-
     try {
-        const result = await callYcFunction('save_meta', { m: settingsRouteName }, { name, description, visible, category, new_m: newSlug });
+        await callYcFunction('save_meta', { m: settingsRouteName }, { name, description, visible });
         
-        if (result.new_m) {
-            settingsRouteName = result.new_m;
-            if (curRoute === settingsRouteName) curRoute = result.new_m;
-            refreshFileList();
-        }
+        currentRouteMeta = { name, description, visible };
         
-        currentRouteMeta = { name, description, visible, category };
-        
-        if (curRoute === settingsRouteName || curRoute === result.new_m) {
+        if (curRoute === settingsRouteName) {
             const rnd = $('routeNameDisplay');
             if (rnd) { rnd.textContent = name; rnd.style.display = 'block'; }
         }
         
+        refreshFileList();
         showToast('Метаданные сохранены', 'success');
     } catch (e) {
         
@@ -1311,7 +1418,7 @@ async function saveGist() {
     if (topSaveBtn) { topSaveBtn.disabled = true; topSaveBtn.textContent = 'Сохраняем...'; }
     try {
         const data = points.map(p => ({ id: p.id, color: p.color, pts: p.pts, cmd: p.cmd, comm: p.comm, info: p.info }));
-        const result = await callYcFunction('save', { m: curRoute }, { data, category: currentRouteMeta.category || '' });
+        const result = await callYcFunction('save', { m: curRoute }, { data });
         if(result && !result.error) {
             lastSavedSnapshot = serializePoints();
             btn.classList.remove('loading');
@@ -1358,6 +1465,14 @@ function closeZnakiSelector() {
     if (isAddingInfo) stopAddingInfo();
     $('znakiModal').classList.remove('visible');
 }
+
+window.createFolder = () => {
+    const name = prompt('Введите название папки (можно с путём, например Город/Мещера):');
+    if (!name || !name.trim()) return;
+    _emptyFolders.push(name.trim());
+    renderSettingsFileList();
+    showToast('Папка создана', 'success');
+};
 
 // Экспорт функций в глобальную область для onclick обработчиков
 window.openPointsOrderModal = openPointsOrderModal;

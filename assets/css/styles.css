@@ -1829,3 +1829,36 @@ input, textarea, select {
     color: #8b8f99;
     text-align: center;
 }
+
+/* Tree view for route list */
+.tree-folder {
+    margin-bottom: 2px;
+}
+
+.tree-folder.drag-over > .tree-folder-header {
+    background: rgba(48, 209, 88, 0.2) !important;
+    border: 1px dashed rgba(48, 209, 88, 0.6);
+    border-radius: 12px;
+}
+
+.tree-folder-header:hover {
+    background: rgba(255,255,255,0.06);
+}
+
+.tree-route-item:hover {
+    opacity: 0.85;
+}
+
+.tree-route-item.dragging {
+    opacity: 0.4;
+}
+
+.tree-route-item.loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.tree-gear:hover {
+    opacity: 1 !important;
+    background: rgba(255,255,255,0.1);
+}

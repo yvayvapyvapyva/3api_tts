@@ -6,6 +6,8 @@ const MenuModule = {
     isInitialized: false,
     routesDescriptions: {}, // { "id-m": { name, description, id, m } }
     _isFetchingRoutes: false,
+    _categoryTree: null,
+    _pathStack: [],
 
     // URL Яндекс-функции для загрузки маршрутов (общий бекенд)
     API_URL_V2: 'https://functions.yandexcloud.net/d4e6qbc1mm9j44h0na3n',
@@ -143,8 +145,8 @@ const MenuModule = {
         this._isFetchingRoutes = true;
         
         try {
-            const routes = await this._fetchFromAPI();
-            this._buildRoutesList(routes);
+            await this._fetchFromAPI();
+            this._buildRoutesList();
         } catch (e) {
             console.warn('Не удалось загрузить список маршрутов:', e);
             const container = document.getElementById('routesListContainer');
@@ -174,128 +176,105 @@ const MenuModule = {
 
         const data = await response.json();
 
-        // Группировка по категориям
-        const routesByCategory = {};
         const routesFlat = {};
         
         for (const route of data) {
-            const category = route.category || 'Без категории';
             const key = `${route.id}-${route.m}`;
+            const rawName = route.name || route.m || '';
             
-            // Сохраняем для flat доступа
             routesFlat[key] = {
                 id: route.id,
                 m: route.m,
-                name: route.name,
-                category: category,
+                name: rawName,
                 description: route.description || ''
             };
-            
-            // Группируем по категориям
-            if (!routesByCategory[category]) {
-                routesByCategory[category] = [];
-            }
-            routesByCategory[category].push({ key, ...routesFlat[key] });
-        }
-
-        // Сортируем категории и маршруты
-        const sortedCategories = Object.keys(routesByCategory).sort();
-        const sortedRoutesByCategory = {};
-        for (const cat of sortedCategories) {
-            sortedRoutesByCategory[cat] = routesByCategory[cat].sort((a, b) => a.name.localeCompare(b.name));
         }
 
         this.routesDescriptions = routesFlat;
-        this.routesByCategory = sortedRoutesByCategory;
+        this._categoryTree = this._buildCategoryTree();
         
-        return sortedRoutesByCategory;
+        return;
+    },
+
+    _countTreeRoutes(node) {
+        let count = node.routes.length;
+        for (const f of Object.values(node.folders)) count += this._countTreeRoutes(f);
+        return count;
+    },
+
+    _buildCategoryTree() {
+        const root = { folders: {}, routes: [] };
+        for (const [key, route] of Object.entries(this.routesDescriptions)) {
+            const fullPath = route.name || key;
+            const parts = fullPath.split('/').map(s => s.trim()).filter(Boolean);
+            const leafName = parts.pop() || fullPath;
+            let node = root;
+            for (const part of parts) {
+                if (!node.folders[part]) node.folders[part] = { folders: {}, routes: [] };
+                node = node.folders[part];
+            }
+            node.routes.push({ key, name: leafName, fullPath, ...route });
+        }
+        return root;
     },
 
     /**
-     * Построение HTML списка маршрутов с группировкой по категориям
+     * Построение HTML списка маршрутов с поддержкой вложенных папок
      */
-    _buildRoutesList(routesByCategory) {
-        if (!routesByCategory) return;
-
+    _buildRoutesList() {
         const container = document.getElementById('routesListContainer');
         if (!container) return;
 
-        const categories = Object.keys(routesByCategory);
+        let node = this._categoryTree;
+        if (!node) {
+            container.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);font-size:14px;">Загрузка...</div>';
+            return;
+        }
 
-        let hasVisible = false;
+        for (const name of this._pathStack) {
+            if (node.folders[name]) { node = node.folders[name]; }
+            else { this._pathStack = []; node = this._categoryTree; break; }
+        }
+
+        const folderNames = Object.keys(node.folders).sort((a, b) => a.localeCompare(b));
+        const hasRoutes = node.routes.length > 0;
+        const hasFolders = folderNames.length > 0;
+
+        if (!hasRoutes && !hasFolders) {
+            container.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);font-size:14px;">Нет доступных маршрутов</div>';
+            return;
+        }
+
         let html = '';
 
-        for (const category of categories) {
-            const routes = routesByCategory[category];
-            if (!routes || routes.length === 0) continue;
-            hasVisible = true;
-
-            html += `
-                <div class="category-folder" onclick="event.stopPropagation();MenuModule.openCategory('${this._escape(category)}')">
-                    <div class="category-header">
-                        <span class="category-icon">📁</span>
-                        <span class="category-name">${category}</span>
-                        <span class="category-count">${routes.length}</span>
-                        <span class="category-arrow">›</span>
-                    </div>
-                </div>
-            `;
-        }
-
-        if (!hasVisible) {
-            container.innerHTML = `
-                <div style="text-align:center; padding:20px; color:rgba(255,255,255,0.5); font-size:14px;">
-                    Нет доступных маршрутов
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = html;
-    },
-
-    /**
-     * Показать маршруты внутри категории
-     */
-    openCategory(categoryName) {
-        const routes = this.routesByCategory[categoryName];
-        if (!routes || routes.length === 0) {
-            const container = document.getElementById('routesListContainer');
-            if (container) {
-                container.innerHTML = `
-                    <div class="category-title" style="display:flex;align-items:center;gap:10px;padding:12px 16px;margin-bottom:8px;background:rgba(0,122,255,0.1);border-radius:12px;border:1px solid rgba(0,122,255,0.2);">
-                        <button class="back-btn" onclick="event.stopPropagation();MenuModule.showCategories()" style="display:flex;align-items:center;gap:6px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);font-size:14px;font-weight:600;cursor:pointer;flex-shrink:0;width:auto;margin:0;">
-                            <span>‹</span> Назад
-                        </button>
-                        <span class="category-icon">📁</span>
-                        <span style="flex:1;font-size:18px;font-weight:700;">${categoryName}</span>
-                    </div>
-                    <div style="text-align:center; padding:20px; color:rgba(255,255,255,0.5); font-size:14px;">
-                        Нет маршрутов в этой категории
-                    </div>
-                `;
-            }
-            return;
-        }
-
-        const container = document.getElementById('routesListContainer');
-
-        let html = `
-            <div class="category-title" style="display:flex;align-items:center;gap:10px;padding:12px 16px;margin-bottom:8px;background:rgba(0,122,255,0.1);border-radius:12px;border:1px solid rgba(0,122,255,0.2);">
-                <button class="back-btn" onclick="event.stopPropagation();MenuModule.showCategories()" style="display:flex;align-items:center;gap:6px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);font-size:14px;font-weight:600;cursor:pointer;flex-shrink:0;width:auto;margin:0;">
+        if (this._pathStack.length > 0) {
+            html += `<div class="category-title" style="display:flex;align-items:center;gap:10px;padding:12px 16px;margin-bottom:8px;background:rgba(0,122,255,0.1);border-radius:12px;border:1px solid rgba(0,122,255,0.2);">
+                <button class="back-btn" onclick="event.stopPropagation();MenuModule.navigateBack()" style="display:flex;align-items:center;gap:6px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);font-size:14px;font-weight:600;cursor:pointer;flex-shrink:0;width:auto;margin:0;">
                     <span>‹</span> Назад
                 </button>
                 <span class="category-icon">📁</span>
-                <span style="flex:1;font-size:18px;font-weight:700;">${categoryName}</span>
-            </div>
-        `;
+                <span style="flex:1;font-size:18px;font-weight:700;">${this._escape(this._pathStack[this._pathStack.length - 1])}</span>
+            </div>`;
+        }
 
-        for (const route of routes) {
+        for (const name of folderNames) {
+            const total = this._countTreeRoutes(node.folders[name]);
+            html += `<div class="category-folder" onclick="event.stopPropagation();MenuModule.navigateToFolder('${this._escape(name)}')">
+                <div class="category-header">
+                    <span class="category-icon">📁</span>
+                    <span class="category-name">${this._escape(name)}</span>
+                    <span class="category-count">${total}</span>
+                    <span class="category-arrow">›</span>
+                </div>
+            </div>`;
+        }
+
+        for (const route of node.routes) {
             const routeKey = route.key;
             const hasDesc = route.description && route.description.trim() !== '';
             const isActive = routeKey === this.currentRoute;
             html += `<button class="route-item${isActive ? ' active' : ''}" onclick="event.stopPropagation();MenuModule.selectRoute('${route.key}')"${isActive ? ' style="background:rgba(48,209,88,0.2);border-color:rgba(48,209,88,0.4);"' : ''}>
-                <span class="route-name">${route.name}</span>
+                <span class="route-name">${this._escape(route.name)}</span>
                 ${hasDesc ? `<span class="route-info-btn" onclick="event.stopPropagation();MenuModule._showRouteDescription('${routeKey}')">?</span>` : ''}
             </button>`;
         }
@@ -304,10 +283,24 @@ const MenuModule = {
     },
 
     /**
-     * Показать все категории
+     * Перейти в подпапку
+     */
+    navigateToFolder(folderName) {
+        this._pathStack.push(folderName);
+        this._buildRoutesList();
+    },
+
+    navigateBack() {
+        this._pathStack.pop();
+        this._buildRoutesList();
+    },
+
+    /**
+     * Показать корневой уровень папок
      */
     showCategories() {
-        this._buildRoutesList(this.routesByCategory);
+        this._pathStack = [];
+        this._buildRoutesList();
     },
 
     /**
@@ -605,11 +598,8 @@ this.callback(jsonData);
         const modal = document.getElementById('jsonModal');
         if (modal) modal.classList.remove('hidden');
         this._hideRouteDescription();
-        this._buildRoutesList(this.routesByCategory);
-        if (this.currentRoute && this.routesDescriptions[this.currentRoute]) {
-            const category = this.routesDescriptions[this.currentRoute].category || 'Без категории';
-            this.openCategory(category);
-        }
+        this._pathStack = [];
+        this._buildRoutesList();
     },
     
     showSpinner() {
