@@ -783,9 +783,24 @@ const MenuModule = {
             clearRoute();
         }
         
+        // Если ответ содержит метаданные (имя, m), извлекаем их
+        let routeData = jsonData;
+        if (jsonData && typeof jsonData === 'object' && 'data' in jsonData) {
+            routeData = jsonData.data;
+            const cr = this.currentRoute;
+            if (cr && jsonData.name) {
+                if (!this.routesDescriptions) this.routesDescriptions = {};
+                if (this.routesDescriptions[cr]) {
+                    this.routesDescriptions[cr].name = jsonData.name;
+                } else {
+                    this.routesDescriptions[cr] = { name: jsonData.name, m: jsonData.m || '' };
+                }
+            }
+        }
+        
         // Передаём JSON данные в навигатор
         if (typeof this.callback === 'function') {
-this.callback(jsonData);
+            this.callback(routeData);
         }
         this.isLoaded = true;
         this.hide();

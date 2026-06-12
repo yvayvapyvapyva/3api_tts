@@ -306,12 +306,12 @@ def handler(event, context):
                 send_report(id_val, m_val, i_val, 'navigator', route_name=route_name, ip=ip_val, user_agent=ua_val, lat=lat_val, lon=lon_val)
 
             raw_data = row.json
-            response_body = raw_data if isinstance(raw_data, str) else json.dumps(raw_data)
-
+            parsed_data = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
+            body = json.dumps({'name': route_name, 'm': m_val, 'data': parsed_data}, ensure_ascii=False)
             return {
                 'statusCode': 200,
                 'headers': {'Content-Type': 'application/json'},
-                'body': response_body
+                'body': body
             }
 
         except Exception as e:
