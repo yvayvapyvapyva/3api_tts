@@ -81,7 +81,7 @@ def verify_tg_init_data(init_data):
 def execute_list_routes_public(session):
     """Публичный список маршрутов (только visible=true)"""
     query = """
-        SELECT DISTINCT id, m, name, description, creator_name
+        SELECT DISTINCT id, m, name, description, creator_name, creator_platform, creator_username
         FROM roads
         WHERE visible = true AND name IS NOT NULL
         ORDER BY name;
@@ -150,7 +150,7 @@ def execute_upsert_route(session, id_param, m_param, json_data):
     )
 
 
-def execute_update_route_meta(session, id_param, m_param, name, description, visible, creator_name=''):
+def execute_update_route_meta(session, id_param, m_param, name, description, visible, creator_name='', creator_platform='', creator_username=''):
     """Обновить метаданные маршрута"""
     query = """
         DECLARE $id AS Utf8;
@@ -159,7 +159,9 @@ def execute_update_route_meta(session, id_param, m_param, name, description, vis
         DECLARE $description AS Utf8;
         DECLARE $visible AS Bool;
         DECLARE $creator_name AS Utf8;
-        UPDATE roads SET name = $name, description = $description, visible = $visible, creator_name = CASE WHEN $creator_name = '' THEN creator_name ELSE $creator_name END WHERE id = $id AND m = $m;
+        DECLARE $creator_platform AS Utf8;
+        DECLARE $creator_username AS Utf8;
+        UPDATE roads SET name = $name, description = $description, visible = $visible, creator_name = CASE WHEN $creator_name = '' THEN creator_name ELSE $creator_name END, creator_platform = CASE WHEN $creator_platform = '' THEN creator_platform ELSE $creator_platform END, creator_username = CASE WHEN $creator_username = '' THEN creator_username ELSE $creator_username END WHERE id = $id AND m = $m;
     """
     prepared_query = session.prepare(query)
     return session.transaction().execute(
@@ -170,13 +172,15 @@ def execute_update_route_meta(session, id_param, m_param, name, description, vis
             '$name': str(name),
             '$description': str(description),
             '$visible': bool(visible),
-            '$creator_name': str(creator_name)
+            '$creator_name': str(creator_name),
+            '$creator_platform': str(creator_platform),
+            '$creator_username': str(creator_username)
         },
         commit_tx=True
     )
 
 
-def execute_rename_route(session, id_param, old_m_param, new_m_param, name, description, visible, creator_name=''):
+def execute_rename_route(session, id_param, old_m_param, new_m_param, name, description, visible, creator_name='', creator_platform='', creator_username=''):
     """Переименовать маршрут (скопировать с новым m и удалить старый)"""
     # Сначала UPSERT с новым m (это также скопирует данные json)
     query_upsert = """
@@ -187,6 +191,8 @@ def execute_rename_route(session, id_param, old_m_param, new_m_param, name, desc
         DECLARE $description AS Utf8;
         DECLARE $visible AS Bool;
         DECLARE $creator_name AS Utf8;
+        DECLARE $creator_platform AS Utf8;
+        DECLARE $creator_username AS Utf8;
         
         $json = (
             SELECT json FROM roads WHERE id = $id AND m = $old_m
@@ -194,9 +200,15 @@ def execute_rename_route(session, id_param, old_m_param, new_m_param, name, desc
         $old_creator_name = (
             SELECT creator_name FROM roads WHERE id = $id AND m = $old_m
         );
+        $old_creator_platform = (
+            SELECT creator_platform FROM roads WHERE id = $id AND m = $old_m
+        );
+        $old_creator_username = (
+            SELECT creator_username FROM roads WHERE id = $id AND m = $old_m
+        );
         
-        UPSERT INTO roads (id, m, json, name, description, visible, creator_name)
-        VALUES ($id, $new_m, $json, $name, $description, $visible, CASE WHEN $creator_name = '' THEN $old_creator_name ELSE $creator_name END);
+        UPSERT INTO roads (id, m, json, name, description, visible, creator_name, creator_platform, creator_username)
+        VALUES ($id, $new_m, $json, $name, $description, $visible, CASE WHEN $creator_name = '' THEN $old_creator_name ELSE $creator_name END, CASE WHEN $creator_platform = '' THEN $old_creator_platform ELSE $creator_platform END, CASE WHEN $creator_username = '' THEN $old_creator_username ELSE $creator_username END);
         
         DELETE FROM roads WHERE id = $id AND m = $old_m;
     """
@@ -210,7 +222,9 @@ def execute_rename_route(session, id_param, old_m_param, new_m_param, name, desc
             '$name': str(name),
             '$description': str(description),
             '$visible': bool(visible),
-            '$creator_name': str(creator_name)
+            '$creator_name': str(creator_name),
+            '$creator_platform': str(creator_platform),
+            '$creator_username': str(creator_username)
         },
         commit_tx=True
     )
@@ -221,7 +235,7 @@ def execute_get_route_meta(session, id_param, m_param):
     query = """
         DECLARE $id AS Utf8;
         DECLARE $m AS Utf8;
-        SELECT name, description, visible, creator_name FROM roads WHERE id = $id AND m = $m;
+        SELECT name, description, visible, creator_name, creator_platform, creator_username FROM roads WHERE id = $id AND m = $m;
     """
     prepared_query = session.prepare(query)
     return session.transaction().execute(
@@ -271,7 +285,9 @@ def handler(event, context):
                     'm': row.m,
                     'name': row.name,
                     'description': row.description if hasattr(row, 'description') and row.description else '',
-                    'creator_name': row.creator_name if hasattr(row, 'creator_name') and row.creator_name else ''
+                    'creator_name': row.creator_name if hasattr(row, 'creator_name') and row.creator_name else '',
+                    'creator_platform': row.creator_platform if hasattr(row, 'creator_platform') and row.creator_platform else '',
+                    'creator_username': row.creator_username if hasattr(row, 'creator_username') and row.creator_username else ''
                 })
             return create_response(200, routes, is_public=True)
         except Exception as e:
@@ -408,7 +424,9 @@ def handler(event, context):
                 'name': row.name if hasattr(row, 'name') else '',
                 'description': row.description if hasattr(row, 'description') else '',
                 'visible': row.visible if hasattr(row, 'visible') else False,
-                'creator_name': row.creator_name if hasattr(row, 'creator_name') else ''
+                'creator_name': row.creator_name if hasattr(row, 'creator_name') else '',
+                'creator_platform': row.creator_platform if hasattr(row, 'creator_platform') else '',
+                'creator_username': row.creator_username if hasattr(row, 'creator_username') else ''
             })
 
         # Сохранение метаданных
@@ -426,14 +444,16 @@ def handler(event, context):
             visible = body_data.get('visible', False)
             new_m = body_data.get('new_m', '')
             creator_name = body_data.get('creator_name', '')
+            creator_platform = body_data.get('creator_platform', '')
+            creator_username = body_data.get('creator_username', '')
 
             try:
                 if new_m and new_m != m_val:
                     # Переименование маршрута
-                    get_pool().retry_operation_sync(execute_rename_route, id_param=user_id, old_m_param=m_val, new_m_param=new_m, name=name, description=description, visible=visible, creator_name=creator_name)
+                    get_pool().retry_operation_sync(execute_rename_route, id_param=user_id, old_m_param=m_val, new_m_param=new_m, name=name, description=description, visible=visible, creator_name=creator_name, creator_platform=creator_platform, creator_username=creator_username)
                     return create_response(200, {'status': 'meta_saved', 'new_m': new_m})
                 else:
-                    get_pool().retry_operation_sync(execute_update_route_meta, id_param=user_id, m_param=m_val, name=name, description=description, visible=visible, creator_name=creator_name)
+                    get_pool().retry_operation_sync(execute_update_route_meta, id_param=user_id, m_param=m_val, name=name, description=description, visible=visible, creator_name=creator_name, creator_platform=creator_platform, creator_username=creator_username)
             except Exception as se:
                 raise
 
