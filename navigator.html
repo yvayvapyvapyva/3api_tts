@@ -587,7 +587,7 @@ function updateHud() {
     const t = APP.navPoints[idx];
     if (!t) return;
 
-    $('hudCmdNum').textContent = idx + 1;
+    $('hudCmdNum').textContent = `${idx + 1}/${APP.navPoints.length}`;
     $('hudCmdTextInner').textContent = t.cmd;
     $('hudCmdTextInner').style.opacity = APP._audioCache.has(t.cmd) ? '1' : '0.35';
     $('hudCmd').onclick = () => {
