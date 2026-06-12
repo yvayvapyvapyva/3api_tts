@@ -1871,3 +1871,19 @@ input, textarea, select {
     opacity: 1 !important;
     background: rgba(255,255,255,0.1);
 }
+
+.category-header.personal {
+    background: rgba(175, 82, 222, 0.2);
+    border-color: rgba(175, 82, 222, 0.4);
+}
+
+.category-header.personal:active {
+    background: rgba(175, 82, 222, 0.35);
+}
+
+.personal-routes-body {
+    padding-left: 16px;
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+}

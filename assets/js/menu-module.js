@@ -8,6 +8,8 @@ const MenuModule = {
     _isFetchingRoutes: false,
     _categoryTree: null,
     _expandedFolders: new Set(),
+    _userRoutes: null,
+    _userId: null,
 
     // URL Яндекс-функции для загрузки маршрутов (общий бекенд)
     API_URL_V2: 'https://functions.yandexcloud.net/d4e6qbc1mm9j44h0na3n',
@@ -80,6 +82,21 @@ const MenuModule = {
 
         // Загружаем список маршрутов динамически
         await this._loadRoutesList();
+
+        // Загружаем личные маршруты пользователя
+        const uid = this._detectUserId();
+        if (uid) {
+            this._userId = uid;
+            await this._fetchUserRoutes(uid);
+        } else if (typeof vkBridge !== 'undefined') {
+            vkBridge.subscribe((event) => {
+                const data = event.detail?.data || null;
+                if (data?.id && !this._userId) {
+                    this._userId = String(data.id);
+                    this._fetchUserRoutes(this._userId).then(() => this._buildRoutesList());
+                }
+            });
+        }
 
         // Проверяем параметры сразу и при получении данных от VK Bridge
         this.checkUrlParam();
@@ -197,6 +214,26 @@ const MenuModule = {
         return;
     },
 
+    _detectUserId() {
+        if (window.tgUser?.id) return String(window.tgUser.id);
+        if (window.vkUser?.id) return String(window.vkUser.id);
+        return null;
+    },
+
+    async _fetchUserRoutes(userId) {
+        if (!userId) return;
+        try {
+            const url = `${this.getApiUrl()}?action=list&id=${encodeURIComponent(userId)}`;
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const data = await resp.json();
+            this._userRoutes = data.routes || [];
+        } catch (e) {
+            console.warn('[MenuModule] Не удалось загрузить личные маршруты:', e);
+            this._userRoutes = [];
+        }
+    },
+
     _countTreeRoutes(node) {
         let count = node.routes.length;
         for (const f of Object.values(node.folders)) count += this._countTreeRoutes(f);
@@ -236,16 +273,61 @@ const MenuModule = {
         const container = document.getElementById('routesListContainer');
         if (!container) return;
 
-        const node = this._categoryTree;
-        if (!node) {
-            container.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);font-size:14px;">Нет маршрутов</div>';
-            return;
+        const frag = document.createDocumentFragment();
+
+        if (this._categoryTree) {
+            this._renderTreeNode(this._categoryTree, frag, '');
         }
 
-        const frag = document.createDocumentFragment();
-        this._renderTreeNode(node, frag, '');
-        container.innerHTML = '';
-        container.appendChild(frag);
+        if (this._userRoutes && this._userRoutes.length > 0) {
+            const sep = document.createElement('div');
+            sep.style.cssText = 'height:1px;background:rgba(255,255,255,0.1);margin:8px 0;flex-shrink:0;';
+            frag.appendChild(sep);
+
+            const folder = document.createElement('div');
+            folder.className = 'category-folder personal';
+
+            const header = document.createElement('div');
+            header.className = 'category-header personal';
+            header.innerHTML = `
+                <span class="category-icon">👤</span>
+                <span class="category-name">Личные</span>
+                <span class="category-count">${this._userRoutes.length}</span>
+            `;
+            header.addEventListener('click', e => {
+                e.stopPropagation();
+                const body = folder.querySelector('.personal-routes-body');
+                const isOpen = body.style.display !== 'none';
+                body.style.display = isOpen ? 'none' : 'flex';
+                header.querySelector('.category-icon').textContent = isOpen ? '👤' : '👤';
+            });
+            folder.appendChild(header);
+
+            const body = document.createElement('div');
+            body.className = 'personal-routes-body';
+            const sorted = [...this._userRoutes].sort((a, b) => (a.name || a.m || '').localeCompare(b.name || b.m || ''));
+            for (const route of sorted) {
+                const btn = document.createElement('button');
+                btn.className = 'route-item';
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'route-name';
+                nameSpan.textContent = route.name || route.m || '';
+                btn.appendChild(nameSpan);
+                btn.addEventListener('click', () => {
+                    this.loadRouteByName(route.m, this._userId);
+                });
+                body.appendChild(btn);
+            }
+            folder.appendChild(body);
+            frag.appendChild(folder);
+        }
+
+        if (frag.children.length === 0) {
+            container.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);font-size:14px;">Нет маршрутов</div>';
+        } else {
+            container.innerHTML = '';
+            container.appendChild(frag);
+        }
     },
 
     _renderTreeNode(node, container, path) {
@@ -615,6 +697,14 @@ this.callback(jsonData);
         this._hideRouteDescription();
         this._expandedFolders = new Set();
         this._expandCurrentRoutePath();
+        // Если личные маршруты ещё не загружены, пробуем снова
+        if (this._userRoutes === null && !this._userId) {
+            const uid = this._detectUserId();
+            if (uid) {
+                this._userId = uid;
+                this._fetchUserRoutes(uid).then(() => this._buildRoutesList());
+            }
+        }
         this._buildRoutesList();
     },
     
