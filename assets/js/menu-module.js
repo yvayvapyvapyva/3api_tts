@@ -206,7 +206,8 @@ const MenuModule = {
                 id: route.id,
                 m: route.m,
                 name: rawName,
-                description: route.description || ''
+                description: route.description || '',
+                creator_name: route.creator_name || ''
             };
         }
 
@@ -254,16 +255,26 @@ const MenuModule = {
 
     _buildCategoryTree() {
         const root = { folders: {}, routes: [] };
+        const groups = {};
         for (const [key, route] of Object.entries(this.routesDescriptions)) {
-            const fullPath = route.name || key;
-            const parts = fullPath.split('/').map(s => s.trim()).filter(Boolean);
-            const leafName = parts.pop() || fullPath;
-            let node = root;
-            for (const part of parts) {
-                if (!node.folders[part]) node.folders[part] = { folders: {}, routes: [] };
-                node = node.folders[part];
+            const cid = route.id;
+            if (!groups[cid]) groups[cid] = { name: route.creator_name || cid, routes: [] };
+            groups[cid].routes.push({ ...route, key });
+        }
+        for (const group of Object.values(groups)) {
+            const node = { folders: {}, routes: [] };
+            for (const route of group.routes) {
+                const fullPath = route.name || route.key;
+                const parts = fullPath.split('/').map(s => s.trim()).filter(Boolean);
+                const leafName = parts.pop() || fullPath;
+                let n = node;
+                for (const part of parts) {
+                    if (!n.folders[part]) n.folders[part] = { folders: {}, routes: [] };
+                    n = n.folders[part];
+                }
+                n.routes.push({ ...route, name: leafName, fullPath });
             }
-            node.routes.push({ ...route, key, name: leafName, fullPath });
+            root.folders[group.name] = node;
         }
         return root;
     },
@@ -272,11 +283,13 @@ const MenuModule = {
         if (!this.currentRoute) return;
         const route = this.routesDescriptions[this.currentRoute];
         if (!route || !route.name) return;
+        const creatorName = route.creator_name || route.id;
+        this._expandedFolders.add(creatorName);
         const parts = route.name.split('/').filter(Boolean);
         parts.pop();
-        let path = '';
+        let path = creatorName;
         for (const part of parts) {
-            path = path ? path + '/' + part : part;
+            path = path + '/' + part;
             this._expandedFolders.add(path);
         }
     },
