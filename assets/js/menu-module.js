@@ -402,7 +402,7 @@ const MenuModule = {
             header.className = 'category-header personal' + (isExpanded ? ' expanded' : '');
             header.innerHTML = `
                 <span class="category-icon">👤</span>
-                <span class="category-name">Личные (${this._getFormattedDisplayName()})</span>
+                <span class="category-name">Личные — ${this._getFormattedDisplayName()}, видны только вам.</span>
                 <span class="category-count">${total}</span>
             `;
             header.addEventListener('click', e => {
