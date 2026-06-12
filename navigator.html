@@ -456,7 +456,8 @@ function updateRouteNameDisplay() {
         if (typeof MenuModule !== 'undefined') {
             const cr = MenuModule.currentRoute;
             if (cr && MenuModule.routesDescriptions && MenuModule.routesDescriptions[cr]) {
-                name = MenuModule.routesDescriptions[cr].name || '';
+                const fullName = MenuModule.routesDescriptions[cr].name || '';
+                name = fullName.split('/').pop() || fullName;
             }
             if (!name && cr) {
                 const dashIndex = cr.indexOf('-');

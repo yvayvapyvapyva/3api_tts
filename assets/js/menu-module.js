@@ -213,7 +213,7 @@ const MenuModule = {
                 if (!node.folders[part]) node.folders[part] = { folders: {}, routes: [] };
                 node = node.folders[part];
             }
-            node.routes.push({ key, name: leafName, fullPath, ...route });
+            node.routes.push({ ...route, key, name: leafName, fullPath });
         }
         return root;
     },
@@ -248,12 +248,20 @@ const MenuModule = {
         let html = '';
 
         if (this._pathStack.length > 0) {
-            html += `<div class="category-title" style="display:flex;align-items:center;gap:10px;padding:12px 16px;margin-bottom:8px;background:rgba(0,122,255,0.1);border-radius:12px;border:1px solid rgba(0,122,255,0.2);">
+            html += `<div class="category-title" style="display:flex;align-items:center;gap:8px;padding:12px 16px;margin-bottom:8px;background:rgba(0,122,255,0.1);border-radius:12px;border:1px solid rgba(0,122,255,0.2);">
                 <button class="back-btn" onclick="event.stopPropagation();MenuModule.navigateBack()" style="display:flex;align-items:center;gap:6px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);font-size:14px;font-weight:600;cursor:pointer;flex-shrink:0;width:auto;margin:0;">
                     <span>‹</span> Назад
                 </button>
                 <span class="category-icon">📁</span>
-                <span style="flex:1;font-size:18px;font-weight:700;">${this._escape(this._pathStack[this._pathStack.length - 1])}</span>
+                <span style="flex:1;display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:15px;font-weight:600;color:rgba(255,255,255,0.9);overflow:hidden;">
+                    ${this._pathStack.map((name, i) => {
+                        if (i === this._pathStack.length - 1) {
+                            return `<span style="color:#fff;">${this._escape(name)}</span>`;
+                        }
+                        const depth = i + 1;
+                        return `<span style="cursor:pointer;color:rgba(255,255,255,0.5);text-decoration:none;" onclick="event.stopPropagation();MenuModule.navigateToDepth(${depth})">${this._escape(name)}</span><span style="color:rgba(255,255,255,0.3);font-size:13px;">›</span>`;
+                    }).join('')}
+                </span>
             </div>`;
         }
 
@@ -292,6 +300,11 @@ const MenuModule = {
 
     navigateBack() {
         this._pathStack.pop();
+        this._buildRoutesList();
+    },
+
+    navigateToDepth(depth) {
+        this._pathStack.length = depth;
         this._buildRoutesList();
     },
 

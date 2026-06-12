@@ -706,6 +706,15 @@ const openCreateRouteModal = (folderPrefix) => {
     setTimeout(() => $('newRouteNameInput').focus(), 100);
 };
 
+const _dragAutoScroll = (e, el, speed = 12) => {
+    const rect = el.getBoundingClientRect();
+    const threshold = 40;
+    const distTop = e.clientY - rect.top;
+    const distBot = rect.bottom - e.clientY;
+    if (distTop < threshold) el.scrollTop -= (threshold - distTop) * speed / threshold;
+    else if (distBot < threshold) el.scrollTop += (threshold - distBot) * speed / threshold;
+};
+
 const renderSettingsFileList = () => {
     const list = $('routesList');
     if (!list) return;
@@ -748,6 +757,10 @@ const renderSettingsFileList = () => {
     }
     const userId = window.USER_ID;
     $('settingsTitle').textContent = `${window.USER_NAME || userId} - маршрутов:${settingsRouteFiles.length}`;
+    if (!list.dataset.dragScroll) {
+        list.dataset.dragScroll = '1';
+        list.addEventListener('dragover', e => _dragAutoScroll(e, list));
+    }
 };
 
 const updateVisibility = () => {
