@@ -1260,6 +1260,14 @@ html, body {
     pointer-events: auto;
 }
 
+#routeSettingsBtn {
+    position: fixed;
+    top: calc(140px + env(safe-area-inset-top));
+    right: 12px;
+    z-index: 9010;
+    pointer-events: auto;
+}
+
 .floating-save {
     position: absolute;
     top: env(safe-area-inset-top, 0px);
