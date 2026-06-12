@@ -984,14 +984,14 @@ html, body {
 
 .desc-modal-overlay {
     position: absolute;
-    inset: 0;
+    top: calc(81px + env(safe-area-inset-top));
+    bottom: calc(25px + env(safe-area-inset-bottom));
+    left: 13px;
+    right: 13px;
     background: rgba(0, 0, 0, 0.7);
     display: flex;
-    align-items: center;
-    justify-content: center;
     opacity: 0;
     transition: opacity 0.2s ease;
-    padding: 20px;
 }
 
 #routeDescModal.visible .desc-modal-overlay {
@@ -1000,8 +1000,7 @@ html, body {
 
 .desc-modal-content {
     width: 100%;
-    max-width: 400px;
-    max-height: 70vh;
+    height: 100%;
     background: rgba(15, 15, 15, 0.97);
     border: 0.5px solid rgba(255, 255, 255, 0.12);
     border-radius: 20px;
