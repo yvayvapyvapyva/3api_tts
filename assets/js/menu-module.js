@@ -155,6 +155,7 @@ const MenuModule = {
                             const { id, name } = this.parseRouteInput(params.m);
                             if (name) {
                                 this.isLoaded = true;
+                                this._filterCreator = id;
                                 this.hide();
                                 this.loadRouteByName(name, id);
                             } else if (id) {
@@ -176,6 +177,7 @@ const MenuModule = {
                     const { id, name } = this.parseRouteInput(mValue);
                     if (name) {
                         this.isLoaded = true;
+                        this._filterCreator = id;
                         this.hide();
                         this.loadRouteByName(name, id);
                     } else if (id) {
@@ -713,6 +715,7 @@ const MenuModule = {
 
         // ID и название — загружаем маршрут
         this.currentRoute = routeParam;
+        this._filterCreator = id;
         this.isLoaded = true;
         this.hide();
         this.loadRouteByName(name, id);
