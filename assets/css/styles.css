@@ -1098,14 +1098,24 @@ html, body {
     gap: 10px;
     padding: 14px 16px;
     border-radius: 14px;
-    background: rgba(0, 122, 255, 0.15);
-    border: 1px solid rgba(0, 122, 255, 0.3);
+    background: rgba(0, 122, 255, 0.25);
+    border: 1px solid rgba(0, 122, 255, 0.5);
     cursor: pointer;
     transition: all 0.2s;
     width: 100%;
     box-sizing: border-box;
 }
 
+.category-header.expanded {
+    background: rgba(0, 122, 255, 0.15);
+}
+.category-header.personal {
+    background: rgba(175, 82, 222, 0.25);
+    border-color: rgba(175, 82, 222, 0.5);
+}
+.category-header.personal.expanded {
+    background: rgba(175, 82, 222, 0.15);
+}
 .category-header:active {
     transform: scale(0.98);
     background: rgba(0, 122, 255, 0.25);
@@ -1913,13 +1923,8 @@ input, textarea, select {
     background: rgba(255,255,255,0.1);
 }
 
-.category-header.personal {
-    background: rgba(175, 82, 222, 0.2);
-    border-color: rgba(175, 82, 222, 0.4);
-}
-
 .category-header.personal:active {
-    background: rgba(175, 82, 222, 0.35);
+    background: rgba(175, 82, 222, 0.25);
 }
 
 .personal-routes-body {

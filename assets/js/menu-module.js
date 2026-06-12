@@ -309,7 +309,7 @@ const MenuModule = {
             el.className = 'category-folder';
 
             const header = document.createElement('div');
-            header.className = 'category-header';
+            header.className = 'category-header' + (isExpanded ? ' expanded' : '');
             header.innerHTML = `
                 <span class="category-icon">${isExpanded ? '📂' : '📁'}</span>
                 <span class="category-name">${this._escape(name)}</span>
@@ -372,7 +372,7 @@ const MenuModule = {
             const isExpanded = this._expandedPersonalFolders.has('__personal__');
 
             const header = document.createElement('div');
-            header.className = 'category-header personal';
+            header.className = 'category-header personal' + (isExpanded ? ' expanded' : '');
             header.innerHTML = `
                 <span class="category-icon">👤</span>
                 <span class="category-name">Личные — видны только вам (${this._getUserDisplayName()})</span>
@@ -417,7 +417,7 @@ const MenuModule = {
             el.className = 'category-folder';
 
             const header = document.createElement('div');
-            header.className = 'category-header';
+            header.className = 'category-header' + (isExpanded ? ' expanded' : '');
             header.innerHTML = `
                 <span class="category-icon">${isExpanded ? '📂' : '📁'}</span>
                 <span class="category-name">${this._escape(name)}</span>

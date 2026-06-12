@@ -621,7 +621,7 @@ function renderTreeLevel(node, pathPrefix, container) {
         el.setAttribute('data-path', folderPath);
 
         const header = document.createElement('div');
-        header.className = 'category-header';
+        header.className = 'category-header' + (isExpanded ? ' expanded' : '');
         header.innerHTML = `
             <span class="category-icon">${isExpanded ? '📂' : '📁'}</span>
             <span class="category-name">${name}</span>
