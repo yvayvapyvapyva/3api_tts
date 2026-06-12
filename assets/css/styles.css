@@ -706,8 +706,8 @@ html, body {
     position: fixed;
     top: calc(76px + env(safe-area-inset-top));
     bottom: calc(20px + env(safe-area-inset-bottom));
-    left: 12px;
-    right: 12px;
+    left: 8px;
+    right: 8px;
     z-index: 10000;
     display: flex;
     opacity: 0;
@@ -731,7 +731,7 @@ html, body {
     background: rgba(15, 15, 15, 0.97);
     border: 0.5px solid rgba(255, 255, 255, 0.12);
     border-radius: 24px;
-    padding: 20px;
+    padding: 8px;
     display: flex;
     flex-direction: column;
     gap: 14px;

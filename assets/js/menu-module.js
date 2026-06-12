@@ -280,7 +280,7 @@ const MenuModule = {
 
             if (isExpanded) {
                 const childWrap = document.createElement('div');
-                childWrap.style.paddingLeft = '16px';
+                childWrap.style.cssText = 'padding-left:16px;display:flex;flex-direction:column;gap:6px;';
                 this._renderTreeNode(sub, childWrap, folderPath);
                 container.appendChild(childWrap);
             }
