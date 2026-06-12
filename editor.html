@@ -701,7 +701,7 @@ async function moveRouteToFolder(routeKey, folderPath) {
         const parts = nm.split('/').filter(Boolean);
         const leafName = parts.pop() || nm;
         const newName = folderPath + '/' + leafName;
-        await callYcFunction('save_meta', { m: routeKey }, { name: newName, description: meta.description || '', visible: meta.visible !== undefined ? meta.visible : false, creator_name: meta.creator_name || '', creator_platform: meta.creator_platform || '', creator_username: meta.creator_username || '' });
+        await callYcFunction('save_meta', { m: routeKey }, { name: newName, description: meta.description || '', visible: meta.visible !== undefined ? meta.visible : false, creator_name: meta.creator_name || '' });
         if (curRoute === routeKey) {
             currentRouteMeta.name = newName;
         }
@@ -867,7 +867,14 @@ const handleCreateNew = async () => {
     
     try {
         await callYcFunction('save', { m: id }, { data: [] });
-        await callYcFunction('save_meta', { m: id }, { name, description: '', visible: false, creator_name: window.USER_NAME || window.USER_ID, creator_platform: TG_ACTIVE ? 'tg' : 'vk', creator_username: window.tgUser?.username || '' });
+        let creatorName = window.USER_NAME || window.USER_ID;
+        if (TG_ACTIVE) {
+            const uname = window.tgUser?.username || '';
+            creatorName = uname ? `${creatorName} (tg: @${uname})` : `${creatorName} (tg)`;
+        } else {
+            creatorName = `${creatorName} (vk: id${window.USER_ID})`;
+        }
+        await callYcFunction('save_meta', { m: id }, { name, description: '', visible: false, creator_name: creatorName });
         refreshFileList(); 
         loadRoute(id); 
         showToast("Маршрут создан", 'success'); 
@@ -905,11 +912,10 @@ const loadRoute = async (routeName) => {
                 name: meta.name || routeName,
                 description: meta.description || '',
                 visible: meta.visible !== undefined ? meta.visible : false,
-                creator_platform: meta.creator_platform || '',
-                creator_username: meta.creator_username || ''
+                creator_name: meta.creator_name || ''
             };
         } catch (e) {
-            currentRouteMeta = { name: routeName, description: '', visible: false, creator_platform: '', creator_username: '' };
+            currentRouteMeta = { name: routeName, description: '', visible: false };
         }
         
         updateVisibility();
@@ -925,7 +931,7 @@ const loadRoute = async (routeName) => {
 let _shareRouteName = null;
 
 let settingsRouteName = null;
-let currentRouteMeta = { name: '', description: '', visible: false, creator_platform: '', creator_username: '' };
+let currentRouteMeta = { name: '', description: '', visible: false };
 
 const openRouteSettings = async (routeName) => {
     settingsRouteName = routeName;
@@ -935,8 +941,7 @@ const openRouteSettings = async (routeName) => {
             name: meta.name || routeName,
             description: meta.description || '',
             visible: meta.visible !== undefined ? meta.visible : false,
-            creator_platform: meta.creator_platform || '',
-            creator_username: meta.creator_username || ''
+            creator_name: meta.creator_name || ''
         };
         $('settingsRouteTitle').textContent = `Маршрут "${currentRouteMeta.name}"`;
         $('routeDisplayName').value = currentRouteMeta.name;
@@ -944,7 +949,7 @@ const openRouteSettings = async (routeName) => {
         $('routeVisible').checked = currentRouteMeta.visible;
     } catch (e) {
         
-        currentRouteMeta = { name: '', description: '', visible: false, creator_platform: '', creator_username: '' };
+        currentRouteMeta = { name: '', description: '', visible: false };
         $('routeDisplayName').value = '';
         $('routeDescription').value = '';
         $('routeVisible').checked = false;
@@ -961,11 +966,10 @@ const saveRouteMeta = async () => {
     if (!name) { showToast('Введите имя маршрута', 'error'); return; }
 
     try {
-        const cp = (currentRouteMeta && currentRouteMeta.creator_platform) || (TG_ACTIVE ? 'tg' : 'vk');
-        const cu = (currentRouteMeta && currentRouteMeta.creator_username) || (window.tgUser?.username || '');
-        await callYcFunction('save_meta', { m: settingsRouteName }, { name, description, visible, creator_name: window.USER_NAME || window.USER_ID, creator_platform: cp, creator_username: cu });
+        const existingCreatorName = currentRouteMeta && currentRouteMeta.creator_name;
+        await callYcFunction('save_meta', { m: settingsRouteName }, { name, description, visible, creator_name: existingCreatorName || '' });
         
-        currentRouteMeta = { name, description, visible, creator_platform: cp, creator_username: cu };
+        currentRouteMeta = { name, description, visible, creator_name: existingCreatorName || '' };
         
         if (curRoute === settingsRouteName) {
             const rnd = $('routeNameDisplay');

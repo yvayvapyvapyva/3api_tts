@@ -207,9 +207,7 @@ const MenuModule = {
                 m: route.m,
                 name: rawName,
                 description: route.description || '',
-                creator_name: route.creator_name || '',
-                creator_platform: route.creator_platform || '',
-                creator_username: route.creator_username || ''
+                creator_name: route.creator_name || ''
             };
         }
 
@@ -261,18 +259,7 @@ const MenuModule = {
         for (const [key, route] of Object.entries(this.routesDescriptions)) {
             const cid = route.id;
             if (!groups[cid]) {
-                const baseName = route.creator_name || cid;
-                const plat = route.creator_platform;
-                let suffix;
-                if (plat === 'tg') {
-                    const uname = route.creator_username;
-                    suffix = uname ? `tg: @${uname}` : `tg: id${cid}`;
-                } else if (plat === 'vk') {
-                    suffix = `vk: id${cid}`;
-                } else {
-                    suffix = `id: ${cid}`;
-                }
-                groups[cid] = { name: `${baseName} (${suffix})`, routes: [] };
+                groups[cid] = { name: route.creator_name || cid, routes: [] };
             }
             groups[cid].routes.push({ ...route, key });
         }
@@ -298,18 +285,7 @@ const MenuModule = {
         if (!this.currentRoute) return;
         const route = this.routesDescriptions[this.currentRoute];
         if (!route || !route.name) return;
-        const baseName = route.creator_name || route.id;
-        const plat = route.creator_platform;
-        let suffix;
-        if (plat === 'tg') {
-            const uname = route.creator_username;
-            suffix = uname ? `tg: @${uname}` : `tg: id${route.id}`;
-        } else if (plat === 'vk') {
-            suffix = `vk: id${route.id}`;
-        } else {
-            suffix = `id: ${route.id}`;
-        }
-        const creatorName = `${baseName} (${suffix})`;
+        const creatorName = route.creator_name || route.id;
         this._expandedFolders.add(creatorName);
         const parts = route.name.split('/').filter(Boolean);
         parts.pop();
