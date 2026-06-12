@@ -157,6 +157,15 @@ function closeInstruction() {
     if (modal) modal.classList.remove('visible');
 }
 
+function getFormattedCreatorName() {
+    const name = window.USER_NAME || window.USER_ID;
+    if (TG_ACTIVE) {
+        const uname = window.tgUser?.username || '';
+        return uname ? `${name} (tg: @${uname})` : `${name} (tg)`;
+    }
+    return `${name} (vk: id${window.USER_ID})`;
+}
+
 const showToast = (text, type = 'info', duration = 2200) => {
     const el = $('toast');
     el.textContent = text;
@@ -701,7 +710,7 @@ async function moveRouteToFolder(routeKey, folderPath) {
         const parts = nm.split('/').filter(Boolean);
         const leafName = parts.pop() || nm;
         const newName = folderPath + '/' + leafName;
-        await callYcFunction('save_meta', { m: routeKey }, { name: newName, description: meta.description || '', visible: meta.visible !== undefined ? meta.visible : false, creator_name: meta.creator_name || '' });
+        await callYcFunction('save_meta', { m: routeKey }, { name: newName, description: meta.description || '', visible: meta.visible !== undefined ? meta.visible : false, creator_name: meta.creator_name || getFormattedCreatorName() });
         if (curRoute === routeKey) {
             currentRouteMeta.name = newName;
         }
@@ -867,14 +876,7 @@ const handleCreateNew = async () => {
     
     try {
         await callYcFunction('save', { m: id }, { data: [] });
-        let creatorName = window.USER_NAME || window.USER_ID;
-        if (TG_ACTIVE) {
-            const uname = window.tgUser?.username || '';
-            creatorName = uname ? `${creatorName} (tg: @${uname})` : `${creatorName} (tg)`;
-        } else {
-            creatorName = `${creatorName} (vk: id${window.USER_ID})`;
-        }
-        await callYcFunction('save_meta', { m: id }, { name, description: '', visible: false, creator_name: creatorName });
+        await callYcFunction('save_meta', { m: id }, { name, description: '', visible: false, creator_name: getFormattedCreatorName() });
         refreshFileList(); 
         loadRoute(id); 
         showToast("Маршрут создан", 'success'); 
@@ -966,10 +968,10 @@ const saveRouteMeta = async () => {
     if (!name) { showToast('Введите имя маршрута', 'error'); return; }
 
     try {
-        const existingCreatorName = currentRouteMeta && currentRouteMeta.creator_name;
-        await callYcFunction('save_meta', { m: settingsRouteName }, { name, description, visible, creator_name: existingCreatorName || '' });
+        const creatorName = (currentRouteMeta && currentRouteMeta.creator_name) || getFormattedCreatorName();
+        await callYcFunction('save_meta', { m: settingsRouteName }, { name, description, visible, creator_name: creatorName });
         
-        currentRouteMeta = { name, description, visible, creator_name: existingCreatorName || '' };
+        currentRouteMeta = { name, description, visible, creator_name: creatorName };
         
         if (curRoute === settingsRouteName) {
             const rnd = $('routeNameDisplay');
