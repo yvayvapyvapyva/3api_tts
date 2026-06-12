@@ -1661,6 +1661,27 @@ input, textarea, select {
     transform: scale(0.9);
 }
 
+@keyframes tts-spin {
+    to { transform: rotate(360deg); }
+}
+
+.play-cmd-btn.loading,
+.play-comm-btn.loading {
+    pointer-events: none;
+    font-size: 0;
+}
+
+.play-cmd-btn.loading::after,
+.play-comm-btn.loading::after {
+    content: '';
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.15);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: tts-spin 0.6s linear infinite;
+}
+
 .comm-input {
     background: linear-gradient(180deg, rgba(25, 25, 30, 0.7), rgba(15, 15, 18, 0.6));
     border: 1px solid rgba(255, 255, 255, 0.25);
