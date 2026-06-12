@@ -408,7 +408,7 @@ def handler(event, context):
                 'name': row.name if hasattr(row, 'name') else '',
                 'description': row.description if hasattr(row, 'description') else '',
                 'visible': row.visible if hasattr(row, 'visible') else False,
-                'creator_name': row.creator_name if hasattr(row, 'creator_name') else ''
+                'creator_name': row.creator_name if hasattr(row, 'creator_name') and row.creator_name else ''
             })
 
         # Сохранение метаданных
