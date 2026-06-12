@@ -863,6 +863,22 @@ html, body {
     height: auto;
 }
 
+#creatorShareModal {
+    position: fixed;
+    inset: 0;
+    z-index: 14000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+#creatorShareModal .modal-sheet {
+    height: auto;
+}
+
 #confirmDeleteModal,
 #confirmDeletePointModal {
     position: fixed;
