@@ -710,7 +710,7 @@ async function moveRouteToFolder(routeKey, folderPath) {
         const parts = nm.split('/').filter(Boolean);
         const leafName = parts.pop() || nm;
         const newName = folderPath + '/' + leafName;
-        await callYcFunction('save_meta', { m: routeKey }, { name: newName, description: meta.description || '', visible: meta.visible !== undefined ? meta.visible : false, creator_name: getFormattedCreatorName() });
+        await callYcFunction('save_meta', { m: routeKey }, { name: newName, description: meta.description || '', visible: meta.visible !== undefined ? meta.visible : false, creator_name: meta.creator_name || getFormattedCreatorName() });
         if (curRoute === routeKey) {
             currentRouteMeta.name = newName;
         }
@@ -968,7 +968,7 @@ const saveRouteMeta = async () => {
     if (!name) { showToast('Введите имя маршрута', 'error'); return; }
 
     try {
-        const creatorName = getFormattedCreatorName();
+        const creatorName = (currentRouteMeta && currentRouteMeta.creator_name) || getFormattedCreatorName();
         await callYcFunction('save_meta', { m: settingsRouteName }, { name, description, visible, creator_name: creatorName });
         
         currentRouteMeta = { name, description, visible, creator_name: creatorName };
