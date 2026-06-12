@@ -263,8 +263,7 @@ const MenuModule = {
             const header = document.createElement('div');
             header.className = 'category-header';
             header.innerHTML = `
-                <span class="category-arrow">${isExpanded ? '▼' : '▶'}</span>
-                <span class="category-icon">📁</span>
+                <span class="category-icon">${isExpanded ? '📂' : '📁'}</span>
                 <span class="category-name">${this._escape(name)}</span>
                 <span class="category-count">${total}</span>
             `;
