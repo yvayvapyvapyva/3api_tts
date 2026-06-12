@@ -78,16 +78,31 @@ def verify_tg_init_data(init_data):
         return None, f'invalid user data: {str(e)}'
 
 
-def execute_list_routes_public(session):
+def execute_list_routes_public(session, creator_id=''):
     """Публичный список маршрутов (только visible=true)"""
-    query = """
-        SELECT DISTINCT id, m, name, description, creator_name
-        FROM roads
-        WHERE visible = true AND name IS NOT NULL
-        ORDER BY name;
-    """
-    prepared_query = session.prepare(query)
-    return session.transaction().execute(prepared_query, commit_tx=True)
+    if creator_id:
+        query = """
+            DECLARE $creator_id AS Utf8;
+            SELECT DISTINCT id, m, name, description, creator_name
+            FROM roads
+            WHERE id = $creator_id AND visible = true AND name IS NOT NULL
+            ORDER BY name;
+        """
+        prepared_query = session.prepare(query)
+        return session.transaction().execute(
+            prepared_query,
+            {'$creator_id': str(creator_id)},
+            commit_tx=True
+        )
+    else:
+        query = """
+            SELECT DISTINCT id, m, name, description, creator_name
+            FROM roads
+            WHERE visible = true AND name IS NOT NULL
+            ORDER BY name;
+        """
+        prepared_query = session.prepare(query)
+        return session.transaction().execute(prepared_query, commit_tx=True)
 
 
 def execute_list_user_routes(session, id_param):
@@ -259,11 +274,12 @@ def handler(event, context):
     action = params.get('action', 'get')
     m_val = params.get('m')
     id_val = params.get('id')
+    creator_filter = params.get('creator', '')
 
     # Публичные экшены (без VK подписи)
     if action == 'list_routes':
         try:
-            result_sets = get_pool().retry_operation_sync(execute_list_routes_public)
+            result_sets = get_pool().retry_operation_sync(execute_list_routes_public, creator_id=creator_filter)
             routes = []
             for row in result_sets[0].rows:
                 routes.append({

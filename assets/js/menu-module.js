@@ -12,6 +12,7 @@ const MenuModule = {
     _userId: null,
     _expandedPersonalFolders: new Set(),
     _currentIsPersonal: false,
+    _filterCreator: '',
 
     // URL Яндекс-функции для загрузки маршрутов (общий бекенд)
     API_URL_V2: 'https://functions.yandexcloud.net/d4e6qbc1mm9j44h0na3n',
@@ -82,6 +83,14 @@ const MenuModule = {
         this.createButton();
         this.hide();
 
+        // Читаем параметр creator из URL (фильтрация по создателю)
+        this._filterCreator = new URLSearchParams(window.location.search).get('creator')
+            || (() => {
+                const hash = window.location.hash.slice(1);
+                if (hash) return new URLSearchParams(hash).get('creator');
+                return '';
+            })() || '';
+
         // Загружаем список маршрутов динамически
         await this._loadRoutesList();
 
@@ -137,15 +146,19 @@ const MenuModule = {
         if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
             try {
                 const startParam = Telegram.WebApp.initDataUnsafe?.start_param;
-                if (startParam && startParam.startsWith('m=') && !this.isLoaded) {
-                    const mValue = startParam.substring(2);
-                    const { id, name } = this.parseRouteInput(mValue);
-                    if (name) {
-                        this.isLoaded = true;
-                        this.hide();
-                        this.loadRouteByName(name, id);
-                    } else if (id) {
-                        this.currentRoute = id;
+                if (startParam && !this.isLoaded) {
+                    if (startParam.startsWith('m=')) {
+                        const mValue = startParam.substring(2);
+                        const { id, name } = this.parseRouteInput(mValue);
+                        if (name) {
+                            this.isLoaded = true;
+                            this.hide();
+                            this.loadRouteByName(name, id);
+                        } else if (id) {
+                            this.currentRoute = id;
+                        }
+                    } else if (startParam.startsWith('creator=')) {
+                        this._filterCreator = startParam.substring(8);
                     }
                 }
             } catch (e) {
@@ -187,7 +200,8 @@ const MenuModule = {
      * Запрос к Яндекс-функции за списком маршрутов
      */
     async _fetchFromAPI() {
-        const url = `${this.getApiUrl()}?action=list_routes`;
+        let url = `${this.getApiUrl()}?action=list_routes`;
+        if (this._filterCreator) url += `&creator=${encodeURIComponent(this._filterCreator)}`;
         const response = await fetch(url);
 
         if (!response.ok) {
