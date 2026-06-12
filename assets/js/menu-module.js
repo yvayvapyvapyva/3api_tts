@@ -10,6 +10,7 @@ const MenuModule = {
     _expandedFolders: new Set(),
     _userRoutes: null,
     _userId: null,
+    _expandedPersonalFolders: new Set(),
 
     // URL Яндекс-функции для загрузки маршрутов (общий бекенд)
     API_URL_V2: 'https://functions.yandexcloud.net/d4e6qbc1mm9j44h0na3n',
@@ -269,6 +270,71 @@ const MenuModule = {
         }
     },
 
+    _buildPersonalCategoryTree() {
+        const root = { folders: {}, routes: [] };
+        for (const route of this._userRoutes) {
+            const fullPath = route.name || route.m || '';
+            const parts = fullPath.split('/').map(s => s.trim()).filter(Boolean);
+            const leafName = parts.pop() || fullPath;
+            let node = root;
+            for (const part of parts) {
+                if (!node.folders[part]) node.folders[part] = { folders: {}, routes: [] };
+                node = node.folders[part];
+            }
+            node.routes.push({ m: route.m, name: leafName, fullPath });
+        }
+        return root;
+    },
+
+    _renderPersonalTreeNode(node, container, path) {
+        const folderNames = Object.keys(node.folders).sort((a, b) => a.localeCompare(b));
+        for (const name of folderNames) {
+            const folderPath = path ? path + '/' + name : name;
+            const sub = node.folders[name];
+            const total = this._countTreeRoutes(sub);
+            const isExpanded = this._expandedPersonalFolders.has(folderPath);
+
+            const el = document.createElement('div');
+            el.className = 'category-folder';
+
+            const header = document.createElement('div');
+            header.className = 'category-header';
+            header.innerHTML = `
+                <span class="category-icon">${isExpanded ? '📂' : '📁'}</span>
+                <span class="category-name">${this._escape(name)}</span>
+                <span class="category-count">${total}</span>
+            `;
+            header.addEventListener('click', e => {
+                e.stopPropagation();
+                if (this._expandedPersonalFolders.has(folderPath)) this._expandedPersonalFolders.delete(folderPath);
+                else this._expandedPersonalFolders.add(folderPath);
+                this._buildRoutesList();
+            });
+            el.appendChild(header);
+            container.appendChild(el);
+
+            if (isExpanded) {
+                const childWrap = document.createElement('div');
+                childWrap.style.cssText = 'padding-left:16px;display:flex;flex-direction:column;gap:6px;';
+                this._renderPersonalTreeNode(sub, childWrap, folderPath);
+                container.appendChild(childWrap);
+            }
+        }
+
+        for (const route of node.routes) {
+            const btn = document.createElement('button');
+            btn.className = 'route-item';
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'route-name';
+            nameSpan.textContent = route.name;
+            btn.appendChild(nameSpan);
+            btn.addEventListener('click', () => {
+                this.loadRouteByName(route.m, this._userId);
+            });
+            container.appendChild(btn);
+        }
+    },
+
     _buildRoutesList() {
         const container = document.getElementById('routesListContainer');
         if (!container) return;
@@ -287,38 +353,32 @@ const MenuModule = {
             const folder = document.createElement('div');
             folder.className = 'category-folder personal';
 
+            const personalTree = this._buildPersonalCategoryTree();
+            const total = this._countTreeRoutes(personalTree);
+            const isExpanded = this._expandedPersonalFolders.has('__personal__');
+
             const header = document.createElement('div');
             header.className = 'category-header personal';
             header.innerHTML = `
                 <span class="category-icon">👤</span>
                 <span class="category-name">Личные</span>
-                <span class="category-count">${this._userRoutes.length}</span>
+                <span class="category-count">${total}</span>
             `;
             header.addEventListener('click', e => {
                 e.stopPropagation();
-                const body = folder.querySelector('.personal-routes-body');
-                const isOpen = body.style.display !== 'none';
-                body.style.display = isOpen ? 'none' : 'flex';
-                header.querySelector('.category-icon').textContent = isOpen ? '👤' : '👤';
+                if (this._expandedPersonalFolders.has('__personal__')) this._expandedPersonalFolders.delete('__personal__');
+                else this._expandedPersonalFolders.add('__personal__');
+                this._buildRoutesList();
             });
             folder.appendChild(header);
 
-            const body = document.createElement('div');
-            body.className = 'personal-routes-body';
-            const sorted = [...this._userRoutes].sort((a, b) => (a.name || a.m || '').localeCompare(b.name || b.m || ''));
-            for (const route of sorted) {
-                const btn = document.createElement('button');
-                btn.className = 'route-item';
-                const nameSpan = document.createElement('span');
-                nameSpan.className = 'route-name';
-                nameSpan.textContent = route.name || route.m || '';
-                btn.appendChild(nameSpan);
-                btn.addEventListener('click', () => {
-                    this.loadRouteByName(route.m, this._userId);
-                });
-                body.appendChild(btn);
+            if (isExpanded) {
+                const body = document.createElement('div');
+                body.className = 'personal-routes-body';
+                this._renderPersonalTreeNode(personalTree, body, '');
+                folder.appendChild(body);
             }
-            folder.appendChild(body);
+
             frag.appendChild(folder);
         }
 
