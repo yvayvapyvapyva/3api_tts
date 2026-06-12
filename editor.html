@@ -483,9 +483,8 @@ const handleInitialAuth = async () => {
     seedHistory();
     updateSaveState();
     await refreshFileList();
-    const userId = window.USER_ID ;
     const routeCount = settingsRouteFiles.length;
-    $('settingsTitle').textContent = `${window.USER_NAME || userId} - маршрутов:${routeCount}`;
+    $('settingsTitle').textContent = `${getFormattedCreatorName()} - маршрутов:${routeCount}`;
 };
 
 function showAdminLogin() {
@@ -743,7 +742,7 @@ const renderSettingsFileList = () => {
     list.innerHTML = '';
     if (settingsRouteFiles.length === 0 && _emptyFolders.length === 0) {
         list.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#8b8f99;font-size:15px;">У вас пока нет маршрутов.<br>Создайте первый маршрут.</div>';
-        $('settingsTitle').textContent = `${window.USER_NAME || window.USER_ID} - маршрутов:0`;
+        $('settingsTitle').textContent = `${getFormattedCreatorName()} - маршрутов:0`;
         return;
     }
     const tree = buildRouteTree();
@@ -783,7 +782,7 @@ const renderSettingsFileList = () => {
         list.appendChild(el);
     }
     const userId = window.USER_ID;
-    $('settingsTitle').textContent = `${window.USER_NAME || userId} - маршрутов:${settingsRouteFiles.length}`;
+    $('settingsTitle').textContent = `${getFormattedCreatorName()} - маршрутов:${settingsRouteFiles.length}`;
     if (!list.dataset.dragScroll) {
         list.dataset.dragScroll = '1';
         list.addEventListener('dragover', e => _dragAutoScroll(e, list));

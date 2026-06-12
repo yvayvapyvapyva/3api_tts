@@ -233,6 +233,17 @@ const MenuModule = {
         return '';
     },
 
+    _getFormattedDisplayName() {
+        const name = this._getUserDisplayName() || this._detectUserId() || '';
+        if (window.tgUser) {
+            return `${name} (tg)`;
+        }
+        if (window.vkUser) {
+            return `${name} (vk: id${window.vkUser.id})`;
+        }
+        return name;
+    },
+
     async _fetchUserRoutes(userId) {
         if (!userId) return;
         try {
@@ -390,7 +401,7 @@ const MenuModule = {
             header.className = 'category-header personal' + (isExpanded ? ' expanded' : '');
             header.innerHTML = `
                 <span class="category-icon">👤</span>
-                <span class="category-name">Личные — видны только вам (${this._getUserDisplayName()})</span>
+                <span class="category-name">Личные (${this._getFormattedDisplayName()})</span>
                 <span class="category-count">${total}</span>
             `;
             header.addEventListener('click', e => {
