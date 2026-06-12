@@ -1883,7 +1883,7 @@ input, textarea, select {
 
 .personal-routes-body {
     padding-left: 16px;
-    display: none;
+    display: flex;
     flex-direction: column;
     gap: 6px;
 }
