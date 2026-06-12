@@ -370,7 +370,8 @@ const MenuModule = {
         }
 
         const routeData2 = this.routesDescriptions[routeKey];
-        document.getElementById('routeDescTitle').textContent = routeData2.name;
+        const titleName = routeData2.name ? routeData2.name.split('/').pop() : routeData2.name;
+        document.getElementById('routeDescTitle').textContent = titleName;
         document.getElementById('routeDescText').textContent = routeData2.description;
         descModal.style.display = 'block';
         requestAnimationFrame(() => descModal.classList.add('visible'));
