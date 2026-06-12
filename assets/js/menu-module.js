@@ -180,6 +180,7 @@ const MenuModule = {
                         this._filterCreator = id;
                         this.hide();
                         this.loadRouteByName(name, id);
+                        this._loadRoutesList().then(() => this._buildRoutesList());
                     } else if (id) {
                         this.currentRoute = id;
                     }
@@ -719,6 +720,7 @@ const MenuModule = {
         this.isLoaded = true;
         this.hide();
         this.loadRouteByName(name, id);
+        this._loadRoutesList().then(() => this._buildRoutesList());
     },
     
     // Загрузка маршрута по названию (внутренний метод)
