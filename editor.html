@@ -1042,8 +1042,8 @@ function copyShareLink(platform) {
 function copyCreatorLink(platform) {
     const userId = window.USER_ID;
     const link = platform === 'vk'
-        ? `https://vk.com/app54507759#creator=${userId}`
-        : `https://t.me/E_ia_bot?startapp=creator=${userId}`;
+        ? `https://vk.com/app54507759#m=${userId}`
+        : `https://t.me/E_ia_bot?startapp=m=${userId}`;
     toggleM('creatorShareModal');
     copyToClipboard(link, "Ссылка скопирована в буфер обмена");
 }

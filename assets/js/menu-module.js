@@ -83,20 +83,35 @@ const MenuModule = {
         this.createButton();
         this.hide();
 
-        // Читаем параметр creator из URL (фильтрация по создателю)
-        this._filterCreator = new URLSearchParams(window.location.search).get('creator')
+        // Читаем параметры фильтрации из URL/hash
+        const urlM = new URLSearchParams(window.location.search).get('m')
             || (() => {
                 const hash = window.location.hash.slice(1);
-                if (hash) return new URLSearchParams(hash).get('creator');
+                if (hash) return new URLSearchParams(hash).get('m');
                 return '';
             })() || '';
+        if (urlM && /^\d+$/.test(urlM.trim())) {
+            this._filterCreator = urlM.trim();
+        } else {
+            this._filterCreator = new URLSearchParams(window.location.search).get('creator')
+                || (() => {
+                    const hash = window.location.hash.slice(1);
+                    if (hash) return new URLSearchParams(hash).get('creator');
+                    return '';
+                })() || '';
+        }
 
         // Проверка start_param от Telegram Mini App (ДО загрузки маршрутов)
         if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
             try {
                 const startParam = Telegram.WebApp.initDataUnsafe?.start_param;
-                if (startParam && startParam.startsWith('creator=')) {
-                    this._filterCreator = startParam.substring(8);
+                if (startParam) {
+                    if (startParam.startsWith('m=')) {
+                        const val = startParam.substring(2);
+                        if (/^\d+$/.test(val)) this._filterCreator = val;
+                    } else if (startParam.startsWith('creator=')) {
+                        this._filterCreator = startParam.substring(8);
+                    }
                 }
             } catch (e) {}
         }
@@ -688,9 +703,11 @@ const MenuModule = {
 
         const { id, name } = this.parseRouteInput(routeParam);
 
-        // Только ID, без названия — фильтруем список, не загружаем маршрут
+        // Только ID, без названия — фильтруем список по создателю
         if (!name) {
             this.currentRoute = id;
+            this._filterCreator = id;
+            this._loadRoutesList().then(() => this._buildRoutesList());
             return;
         }
 
