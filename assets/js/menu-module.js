@@ -11,6 +11,7 @@ const MenuModule = {
     _userRoutes: null,
     _userId: null,
     _expandedPersonalFolders: new Set(),
+    _currentIsPersonal: false,
 
     // URL Яндекс-функции для загрузки маршрутов (общий бекенд)
     API_URL_V2: 'https://functions.yandexcloud.net/d4e6qbc1mm9j44h0na3n',
@@ -322,14 +323,17 @@ const MenuModule = {
         }
 
         for (const route of node.routes) {
+            const routeKey = `${this._userId}-${route.m}`;
+            const isActive = this._currentIsPersonal && routeKey === this.currentRoute;
             const btn = document.createElement('button');
-            btn.className = 'route-item';
+            btn.className = 'route-item' + (isActive ? ' active' : '');
+            if (isActive) btn.style.cssText = 'background:rgba(48,209,88,0.2);border-color:rgba(48,209,88,0.4);';
             const nameSpan = document.createElement('span');
             nameSpan.className = 'route-name';
             nameSpan.textContent = route.name;
             btn.appendChild(nameSpan);
             btn.addEventListener('click', () => {
-                this.loadRouteByName(route.m, this._userId);
+                this.loadRouteByName(route.m, this._userId, true);
             });
             container.appendChild(btn);
         }
@@ -430,7 +434,7 @@ const MenuModule = {
         for (const route of node.routes) {
             const routeKey = route.key;
             const hasDesc = route.description && route.description.trim() !== '';
-            const isActive = routeKey === this.currentRoute;
+            const isActive = !this._currentIsPersonal && routeKey === this.currentRoute;
             const btn = document.createElement('button');
             btn.className = 'route-item' + (isActive ? ' active' : '');
             if (isActive) btn.style.cssText = 'background:rgba(48,209,88,0.2);border-color:rgba(48,209,88,0.4);';
@@ -642,7 +646,8 @@ const MenuModule = {
     },
     
     // Загрузка маршрута по названию (внутренний метод)
-    async loadRouteByName(routeName, routeId = null) {
+    async loadRouteByName(routeName, routeId = null, isPersonal = false) {
+        this._currentIsPersonal = isPersonal;
         this.showSpinner();
         try {
             this.currentRoute = routeId ? `${routeId}-${routeName}` : routeName;
