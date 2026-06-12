@@ -1883,10 +1883,21 @@ input, textarea, select {
     margin-bottom: 2px;
 }
 
+.category-folder.drag-over .category-header,
 .tree-folder.drag-over > .tree-folder-header {
     background: rgba(48, 209, 88, 0.2) !important;
     border: 1px dashed rgba(48, 209, 88, 0.6);
     border-radius: 12px;
+}
+
+.route-item.dragging,
+.tree-route-item.dragging {
+    opacity: 0.4;
+}
+
+.tree-route-item.loading {
+    opacity: 0.5;
+    pointer-events: none;
 }
 
 .tree-folder-header:hover {
@@ -1895,15 +1906,6 @@ input, textarea, select {
 
 .tree-route-item:hover {
     opacity: 0.85;
-}
-
-.tree-route-item.dragging {
-    opacity: 0.4;
-}
-
-.tree-route-item.loading {
-    opacity: 0.5;
-    pointer-events: none;
 }
 
 .tree-gear:hover {
