@@ -2,9 +2,10 @@ import requests
 import datetime
 import os
 import base64
+import html
 from urllib.parse import unquote
 
-def send_report(user_id, m_val, i_val=None, report_type='navigator', ip=None, user_agent=None, lat=None, lon=None):
+def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name='', ip=None, user_agent=None, lat=None, lon=None):
     """
     Отправка отчета в Telegram
     
@@ -13,6 +14,7 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', ip=None, us
         m_val: Имя маршрута
         i_val: Опционально - информация о пользователе (закодированная строка: id,имя_фамилия,город)
         report_type: 'navigator' или 'editor'
+        route_name: Отображаемое имя маршрута
         ip: IP-адрес пользователя
         user_agent: User-Agent браузера
         lat: Широта (опционально)
@@ -63,28 +65,29 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', ip=None, us
             user_info_text = "ошибка декодирования"
 
     tg_link = f"https://t.me/E_ia_bot?startapp=m={user_id}-{m_val}"
-    route_line_editor = f"Ⓜ️ Маршрут: [{user_id}-{m_val}]({tg_link})"
-    route_line_nav = f"🆔 Маршрут: [{user_id}-{m_val}]({tg_link})"
+    display = html.escape(route_name or f"{user_id}-{m_val}")
+    route_line_editor = f'Ⓜ️ Маршрут: {user_id} — <a href="{tg_link}">{display}</a>'
+    route_line_nav = f'🆔 Маршрут: {user_id} — <a href="{tg_link}">{display}</a>'
 
     extra_lines = ""
     if ip:
-        extra_lines += f"\n🌐 IP: `{ip}`"
+        extra_lines += f"\n🌐 IP: <code>{html.escape(ip)}</code>"
     if user_agent:
         ua_short = user_agent[:120] + "..." if len(user_agent) > 120 else user_agent
-        extra_lines += f"\n📱 UA: `{ua_short}`"
+        extra_lines += f"\n📱 UA: <code>{html.escape(ua_short)}</code>"
 
     if report_type == 'editor':
         message = (
-            f"📊 *Загрузка маршрута в редакторе*{platform_icon}\n"
-            f"🕒 `{now_moscow}`\n"
+            f"📊 <b>Загрузка маршрута в редакторе</b>{platform_icon}\n"
+            f"🕒 <code>{now_moscow}</code>\n"
             f"{route_line_editor}\n"
             f"👤 Пользователь: {user_info_text}"
             f"{extra_lines}"
         )
     else:
         message = (
-            f"📊 *Запуск навигатора*{platform_icon}\n"
-            f"🕒 `{now_moscow}`\n"
+            f"📊 <b>Запуск навигатора</b>{platform_icon}\n"
+            f"🕒 <code>{now_moscow}</code>\n"
             f"{route_line_nav}\n"
             f"👤 Пользователь: {user_info_text}"
             f"{extra_lines}"
@@ -96,7 +99,7 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', ip=None, us
             params={
                 "chat_id": chat_id, 
                 "text": message,
-                "parse_mode": "Markdown"
+                "parse_mode": "HTML"
             },
             timeout=2 
         )

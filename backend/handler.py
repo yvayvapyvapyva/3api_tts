@@ -8,7 +8,7 @@ import json
 try:
     from notifier import send_report
 except ImportError:
-    def send_report(user_id, m_val, i_val=None, report_type='navigator'):
+    def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name='', ip=None, user_agent=None, lat=None, lon=None):
         pass
 
 endpoint = os.getenv("YDB_ENDPOINT")
@@ -105,7 +105,7 @@ def execute_get_route(session, id_param, m_param):
     query = """
         DECLARE $id AS Utf8;
         DECLARE $m AS Utf8;
-        SELECT json FROM roads WHERE id = $id AND m = $m;
+        SELECT json, name FROM roads WHERE id = $id AND m = $m;
     """
     prepared_query = session.prepare(query)
     return session.transaction().execute(
@@ -281,13 +281,10 @@ def handler(event, context):
         
         i_val = params.get('i')
         
-        # Тихая отправка отчета (незаметно для пользователя)
         ua_val = params.get('ua', '')
         ip_val = params.get('ip', '')
         lat_val = params.get('lat', '')
         lon_val = params.get('lon', '')
-        if i_val or id_val:
-            send_report(id_val, m_val, i_val, 'navigator', ip=ip_val, user_agent=ua_val, lat=lat_val, lon=lon_val)
 
         try:
             result_sets = get_pool().retry_operation_sync(execute_get_route, id_param=id_val, m_param=m_val)
@@ -295,7 +292,12 @@ def handler(event, context):
             if not result_sets[0].rows:
                 return create_response(404, {'error': 'not_found'})
 
-            raw_data = result_sets[0].rows[0].json
+            row = result_sets[0].rows[0]
+            route_name = getattr(row, 'name', '') or ''
+            if i_val or id_val:
+                send_report(id_val, m_val, i_val, 'navigator', route_name=route_name, ip=ip_val, user_agent=ua_val, lat=lat_val, lon=lon_val)
+
+            raw_data = row.json
             response_body = raw_data if isinstance(raw_data, str) else json.dumps(raw_data)
 
             return {
@@ -343,7 +345,9 @@ def handler(event, context):
             if not result[0].rows:
                 return create_response(404, {'error': 'route_not_found'})
 
-            raw_data = result[0].rows[0].json
+            row = result[0].rows[0]
+            route_name = getattr(row, 'name', '') or ''
+            raw_data = row.json
             try:
                 parsed_data = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
             except:
@@ -352,7 +356,7 @@ def handler(event, context):
             i_val = params.get('i')
             ua_val = params.get('ua', '')
             ip_val = params.get('ip', '')
-            send_report(user_id, m_val, i_val, 'editor', ip=ip_val, user_agent=ua_val)
+            send_report(user_id, m_val, i_val, 'editor', route_name=route_name, ip=ip_val, user_agent=ua_val)
 
             return create_response(200, {'id': user_id, 'm': m_val, 'data': parsed_data})
 
