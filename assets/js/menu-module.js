@@ -91,6 +91,16 @@ const MenuModule = {
                 return '';
             })() || '';
 
+        // Проверка start_param от Telegram Mini App (ДО загрузки маршрутов)
+        if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+            try {
+                const startParam = Telegram.WebApp.initDataUnsafe?.start_param;
+                if (startParam && startParam.startsWith('creator=')) {
+                    this._filterCreator = startParam.substring(8);
+                }
+            } catch (e) {}
+        }
+
         // Загружаем список маршрутов динамически
         await this._loadRoutesList();
 
@@ -142,27 +152,22 @@ const MenuModule = {
             }
         }
 
-        // Проверка start_param от Telegram Mini App
+        // Проверка start_param от Telegram Mini App (на конкретный маршрут)
         if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
             try {
                 const startParam = Telegram.WebApp.initDataUnsafe?.start_param;
-                if (startParam && !this.isLoaded) {
-                    if (startParam.startsWith('m=')) {
-                        const mValue = startParam.substring(2);
-                        const { id, name } = this.parseRouteInput(mValue);
-                        if (name) {
-                            this.isLoaded = true;
-                            this.hide();
-                            this.loadRouteByName(name, id);
-                        } else if (id) {
-                            this.currentRoute = id;
-                        }
-                    } else if (startParam.startsWith('creator=')) {
-                        this._filterCreator = startParam.substring(8);
+                if (startParam && !this.isLoaded && startParam.startsWith('m=')) {
+                    const mValue = startParam.substring(2);
+                    const { id, name } = this.parseRouteInput(mValue);
+                    if (name) {
+                        this.isLoaded = true;
+                        this.hide();
+                        this.loadRouteByName(name, id);
+                    } else if (id) {
+                        this.currentRoute = id;
                     }
                 }
-            } catch (e) {
-            }
+            } catch (e) {}
         }
 
         this.isInitialized = true;
