@@ -1937,7 +1937,6 @@ input, textarea, select {
     z-index: 99999;
     pointer-events: none;
     opacity: 0.92;
-    transform: scale(1.05);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(48, 209, 88, 0.25);
     border-radius: 14px;
     overflow: hidden;

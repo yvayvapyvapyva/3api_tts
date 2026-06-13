@@ -790,7 +790,7 @@ const renderSettingsFileList = () => {
     }
     if (!list.dataset.touchDrag) {
         list.dataset.touchDrag = '1';
-        let touchDragKey = null, touchDragEl = null, touchGhost = null, touchDragging = false, touchLongPress = null;
+        let touchDragKey = null, touchDragEl = null, touchGhost = null, touchDragging = false, touchLongPress = null, touchGhostFixedX = 0;
         list.addEventListener('touchstart', e => {
             const item = e.target.closest('.route-item');
             if (!item) return;
@@ -807,6 +807,7 @@ const renderSettingsFileList = () => {
                 touchGhost.classList.add('route-drag-ghost');
                 touchGhost.style.width = touchDragEl.offsetWidth + 'px';
                 touchGhost.style.display = 'none';
+                touchGhostFixedX = touchDragEl.getBoundingClientRect().left + touchDragEl.offsetWidth / 2;
                 document.body.appendChild(touchGhost);
             }, 500);
         }, { passive: true });
@@ -822,7 +823,7 @@ const renderSettingsFileList = () => {
             const touch = e.touches[0];
             if (touchGhost) {
                 touchGhost.style.display = '';
-                touchGhost.style.left = (touch.clientX - touchGhost.offsetWidth / 2) + 'px';
+                touchGhost.style.left = (touchGhostFixedX - touchGhost.offsetWidth / 2) + 'px';
                 touchGhost.style.top = (touch.clientY - touchGhost.offsetHeight / 2) + 'px';
             }
             if (touchGhost) touchGhost.style.display = 'none';
