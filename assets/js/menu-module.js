@@ -420,13 +420,16 @@ const MenuModule = {
         const frag = document.createDocumentFragment();
 
         if (this._categoryTree) {
-            if (this._filterCreator) {
-                // При фильтрации по создателю показываем маршруты без папки пользователя
+            if (!ROOT_CREATOR_FOLDER_VISIBLE || this._filterCreator) {
+                // При фильтрации или отключенных корневых папках — без обёртки создателя
                 const folders = Object.values(this._categoryTree.folders);
                 if (folders.length === 1) {
                     this._renderTreeNode(folders[0], frag, '');
                 } else {
-                    this._renderTreeNode(this._categoryTree, frag, '');
+                    // Если почему-то несколько папок — рендерим все
+                    for (const node of folders) {
+                        this._renderTreeNode(node, frag, '');
+                    }
                 }
             } else {
                 this._renderTreeNode(this._categoryTree, frag, '');

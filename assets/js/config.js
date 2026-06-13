@@ -19,3 +19,7 @@ const ROUTE_DATA = {
 const COLORS = Object.fromEntries(
   Object.entries(ROUTE_DATA).map(([k, v]) => [k, { hex: v.hex, label: v.label }])
 );
+
+// true — показывать корневые папки создателей в списке маршрутов
+// false — показывать маршруты без корневых папок создателей
+const ROOT_CREATOR_FOLDER_VISIBLE = false;
