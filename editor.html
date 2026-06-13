@@ -799,9 +799,11 @@ const renderSettingsFileList = () => {
             touchDragging = false;
             touchLongPress = setTimeout(() => {
                 touchDragging = true;
+                const w = touchDragEl.offsetWidth;
                 touchGhost = touchDragEl.cloneNode(true);
-                touchGhost.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;opacity:0.85;transform:scale(1.03);width:' + touchDragEl.offsetWidth + 'px;left:-9999px;top:-9999px;';
+                touchGhost.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;opacity:0.9;width:' + w + 'px;left:-9999px;top:-9999px;';
                 document.body.appendChild(touchGhost);
+                if (touchDragEl) touchDragEl.style.display = 'none';
             }, 500);
         }, { passive: true });
         list.addEventListener('touchmove', e => {
@@ -837,6 +839,7 @@ const renderSettingsFileList = () => {
             clearTimeout(touchLongPress);
             if (touchGhost) { touchGhost.remove(); touchGhost = null; }
             if (!touchDragKey) return;
+            if (touchDragEl) touchDragEl.style.display = '';
             if (touchDragging) {
                 const folder = document.querySelector('.category-folder.drag-over');
                 if (folder) {
