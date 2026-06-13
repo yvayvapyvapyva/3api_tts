@@ -431,15 +431,15 @@ const MenuModule = {
                 // При фильтрации или отключенных корневых папках — без обёртки создателя
                 const folders = Object.values(this._categoryTree.folders);
                 if (folders.length === 1) {
-                    this._renderTreeNode(folders[0], frag, '');
+                    this._renderTreeNode(folders[0], frag, '', false);
                 } else {
                     // Если почему-то несколько папок — рендерим все
                     for (const node of folders) {
-                        this._renderTreeNode(node, frag, '');
+                        this._renderTreeNode(node, frag, '', false);
                     }
                 }
             } else {
-                this._renderTreeNode(this._categoryTree, frag, '');
+                this._renderTreeNode(this._categoryTree, frag, '', true);
             }
         }
 
@@ -488,7 +488,7 @@ const MenuModule = {
         }
     },
 
-    _renderTreeNode(node, container, path) {
+    _renderTreeNode(node, container, path, isRoot = !path) {
         const folderNames = Object.keys(node.folders).sort((a, b) => a.localeCompare(b));
 
         for (const name of folderNames) {
@@ -501,7 +501,7 @@ const MenuModule = {
             el.className = 'category-folder';
 
             const header = document.createElement('div');
-            header.className = 'category-header' + (isExpanded ? ' expanded' : '') + (!path ? ' root' : '');
+            header.className = 'category-header' + (isExpanded ? ' expanded' : '') + (isRoot ? ' root' : '');
             header.innerHTML = `
                 <span class="category-icon">${isExpanded ? '📂' : '📁'}</span>
                 <span class="category-name">${this._escape(name)}</span>
@@ -520,7 +520,7 @@ const MenuModule = {
             if (isExpanded) {
                 const childWrap = document.createElement('div');
                 childWrap.style.cssText = 'padding-left:16px;display:flex;flex-direction:column;gap:6px;';
-                this._renderTreeNode(sub, childWrap, folderPath);
+                this._renderTreeNode(sub, childWrap, folderPath, false);
                 container.appendChild(childWrap);
             }
         }
