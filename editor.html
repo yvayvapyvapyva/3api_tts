@@ -790,16 +790,38 @@ const renderSettingsFileList = () => {
     }
     if (!list.dataset.touchDrag) {
         list.dataset.touchDrag = '1';
-        let touchDragKey = null, touchDragEl = null;
+        let touchDragKey = null, touchDragEl = null, touchDragTimer = null, touchStartY = 0;
+
+        function clearTouchDrag() {
+            if (touchDragTimer) { clearTimeout(touchDragTimer); touchDragTimer = null; }
+            if (touchDragEl) touchDragEl.classList.remove('dragging');
+            document.querySelectorAll('.category-folder.drag-over').forEach(el => el.classList.remove('drag-over'));
+            touchDragKey = null;
+            touchDragEl = null;
+        }
+
         list.addEventListener('touchstart', e => {
             const item = e.target.closest('.route-item');
             if (!item) return;
+            clearTouchDrag();
             touchDragKey = item.dataset.key;
             touchDragEl = item;
-            item.classList.add('dragging');
+            touchStartY = e.touches[0].clientY;
+
+            touchDragTimer = setTimeout(() => {
+                touchDragTimer = null;
+                if (touchDragEl) touchDragEl.classList.add('dragging');
+            }, 300);
         }, { passive: true });
+
         list.addEventListener('touchmove', e => {
             if (!touchDragKey) return;
+            // Если таймер ещё не сработал — отменяем при значительном движении (скролл)
+            if (touchDragTimer) {
+                const dy = Math.abs(e.touches[0].clientY - touchStartY);
+                if (dy > 10) { clearTouchDrag(); }
+                return;
+            }
             e.preventDefault();
             const touch = e.touches[0];
             if (touchDragEl) touchDragEl.style.display = 'none';
@@ -817,8 +839,11 @@ const renderSettingsFileList = () => {
             if (dt < th) list.scrollTop -= (th - dt) * 12 / th;
             else if (db < th) list.scrollTop += (th - db) * 12 / th;
         }, { passive: false });
+
         list.addEventListener('touchend', () => {
             if (!touchDragKey) return;
+            // Если таймер не сработал — отменяем
+            if (touchDragTimer) { clearTouchDrag(); return; }
             if (touchDragEl) touchDragEl.classList.remove('dragging');
             const folder = document.querySelector('.category-folder.drag-over');
             if (folder) {
