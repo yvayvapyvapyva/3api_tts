@@ -794,6 +794,7 @@ const renderSettingsFileList = () => {
         list.addEventListener('touchstart', e => {
             const item = e.target.closest('.route-item');
             if (!item) return;
+            item.draggable = false;
             touchDragKey = item.dataset.key;
             touchDragEl = item;
             touchDragging = false;
@@ -842,7 +843,10 @@ const renderSettingsFileList = () => {
         list.addEventListener('touchend', () => {
             clearTimeout(touchLongPress);
             if (touchGhost) { touchGhost.remove(); touchGhost = null; }
-            if (touchDragEl) touchDragEl.classList.remove('dragging');
+            if (touchDragEl) {
+                touchDragEl.classList.remove('dragging');
+                touchDragEl.draggable = true;
+            }
             if (touchDragging) {
                 const folder = document.querySelector('.category-folder.drag-over');
                 if (folder) {
@@ -851,6 +855,15 @@ const renderSettingsFileList = () => {
                     folder.classList.remove('drag-over');
                 }
             }
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            touchDragKey = null;
+            touchDragEl = null;
+            touchDragging = false;
+        }, { passive: true });
+        list.addEventListener('touchcancel', () => {
+            clearTimeout(touchLongPress);
+            if (touchGhost) { touchGhost.remove(); touchGhost = null; }
+            if (touchDragEl) { touchDragEl.classList.remove('dragging'); touchDragEl.draggable = true; }
             document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
             touchDragKey = null;
             touchDragEl = null;
