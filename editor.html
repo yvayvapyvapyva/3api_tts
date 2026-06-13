@@ -790,7 +790,7 @@ const renderSettingsFileList = () => {
     }
     if (!list.dataset.touchDrag) {
         list.dataset.touchDrag = '1';
-        let touchDragKey = null, touchDragEl = null, touchDragging = false, touchLongPress = null;
+        let touchDragKey = null, touchDragEl = null, touchDragging = false, touchLongPress = null, touchGhost = null;
         list.addEventListener('touchstart', e => {
             const item = e.target.closest('.route-item');
             if (!item) return;
@@ -799,7 +799,9 @@ const renderSettingsFileList = () => {
             touchDragging = false;
             touchLongPress = setTimeout(() => {
                 touchDragging = true;
-                if (touchDragEl) touchDragEl.classList.add('dragging');
+                touchGhost = touchDragEl.cloneNode(true);
+                touchGhost.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;opacity:0.85;transform:scale(1.03);width:' + touchDragEl.offsetWidth + 'px;left:-9999px;top:-9999px;';
+                document.body.appendChild(touchGhost);
             }, 500);
         }, { passive: true });
         list.addEventListener('touchmove', e => {
@@ -812,6 +814,10 @@ const renderSettingsFileList = () => {
             }
             e.preventDefault();
             const touch = e.touches[0];
+            if (touchGhost) {
+                touchGhost.style.left = (touch.clientX - touchGhost.offsetWidth / 2) + 'px';
+                touchGhost.style.top = (touch.clientY - touchGhost.offsetHeight / 2) + 'px';
+            }
             if (touchDragEl) touchDragEl.style.display = 'none';
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
             if (touchDragEl) touchDragEl.style.display = '';
@@ -829,8 +835,8 @@ const renderSettingsFileList = () => {
         }, { passive: false });
         list.addEventListener('touchend', () => {
             clearTimeout(touchLongPress);
+            if (touchGhost) { touchGhost.remove(); touchGhost = null; }
             if (!touchDragKey) return;
-            if (touchDragEl) touchDragEl.classList.remove('dragging');
             if (touchDragging) {
                 const folder = document.querySelector('.category-folder.drag-over');
                 if (folder) {
