@@ -897,6 +897,98 @@ html, body {
     height: auto;
 }
 
+#triggerSettingsModal {
+    position: fixed;
+    inset: 0;
+    z-index: 18000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+#triggerSettingsModal .modal-sheet {
+    height: auto;
+    max-width: 360px;
+    margin: 0 16px;
+}
+
+.trigger-setting-row {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0 0 0;
+    background: rgba(255,255,255,0.04);
+    border-radius: 12px;
+}
+
+.trigger-setting-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px 6px 16px;
+}
+
+.trigger-setting-row .label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.trigger-setting-row .value {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.5);
+    min-width: 28px;
+    text-align: center;
+}
+
+.trigger-setting-row input[type="range"] {
+    width: 100%;
+    height: 32px;
+    margin: 0;
+    padding: 0;
+    accent-color: #30D158;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    box-sizing: border-box;
+}
+
+.trigger-setting-row input[type="range"]::-webkit-slider-runnable-track {
+    height: 10px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.12);
+}
+
+.trigger-setting-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #30D158;
+    margin-top: -9px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.trigger-setting-row input[type="range"]::-moz-range-track {
+    height: 10px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.12);
+    border: none;
+}
+
+.trigger-setting-row input[type="range"]::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #30D158;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;

@@ -406,6 +406,34 @@ function toggleAutoCenter() {
     showToast(APP.autoCenter ? 'Привязка включена' : 'Привязка отключена');
 }
 
+function triggerSettingsLoad() {
+}
+
+function triggerSettingsOpen() {
+    $('triggerDist').value = APP.navConfig.TRIGGER_DIST;
+    $('triggerDistVal').textContent = APP.navConfig.TRIGGER_DIST + ' м';
+    $('triggerAz').value = APP.navConfig.AZ_TOLERANCE;
+    $('triggerAzVal').textContent = '±' + APP.navConfig.AZ_TOLERANCE + '°';
+    $('triggerSpeed').value = APP.navConfig.SPEED_THRESHOLD;
+    $('triggerSpeedVal').textContent = APP.navConfig.SPEED_THRESHOLD + ' км/ч';
+    $('triggerSettingsModal').style.display = 'flex';
+}
+
+function triggerSettingsClose() {
+    $('triggerSettingsModal').style.display = 'none';
+}
+
+function triggerSettingsSave() {
+    const dist = parseInt($('triggerDist').value);
+    const az = parseInt($('triggerAz').value);
+    const speed = parseInt($('triggerSpeed').value);
+    APP.navConfig.TRIGGER_DIST = dist;
+    APP.navConfig.AZ_TOLERANCE = az;
+    APP.navConfig.SPEED_THRESHOLD = speed;
+    triggerSettingsClose();
+    showToast('Настройки сохранены', 'success');
+}
+
 function toggleMapType() {
     if (!APP.map) return;
     if (APP._isScheme) {
@@ -968,7 +996,45 @@ ymaps3.ready.then(async () => {
         $('tiltBtn').textContent = APP._is3D ? '3D' : '2D';
     }
 
-    $('locateBtn').addEventListener('click', toggleAutoCenter);
+    let locatePressTimer = null;
+    $('locateBtn').addEventListener('pointerdown', () => {
+        locatePressTimer = setTimeout(() => {
+            locatePressTimer = null;
+            triggerSettingsOpen();
+        }, 2000);
+    });
+    $('locateBtn').addEventListener('pointerup', () => {
+        if (locatePressTimer) {
+            clearTimeout(locatePressTimer);
+            locatePressTimer = null;
+            toggleAutoCenter();
+        }
+    });
+    $('locateBtn').addEventListener('pointerleave', () => {
+        if (locatePressTimer) {
+            clearTimeout(locatePressTimer);
+            locatePressTimer = null;
+        }
+    });
+    $('locateBtn').addEventListener('pointercancel', () => {
+        if (locatePressTimer) {
+            clearTimeout(locatePressTimer);
+            locatePressTimer = null;
+        }
+    });
+
+    $('triggerDist').addEventListener('input', function() {
+        $('triggerDistVal').textContent = this.value + ' м';
+    });
+    $('triggerAz').addEventListener('input', function() {
+        $('triggerAzVal').textContent = '±' + this.value + '°';
+    });
+    $('triggerSpeed').addEventListener('input', function() {
+        $('triggerSpeedVal').textContent = this.value + ' км/ч';
+    });
+
+    triggerSettingsLoad();
+
     $('commentBlock').addEventListener('click', () => {
         $('commentBlock').classList.remove('visible'); clearInfoMarkers();
     });
@@ -1034,6 +1100,43 @@ ymaps3.ready.then(async () => {
     showToast('Ошибка загрузки карты: ' + e.message, 'error', 5000);
 });
 </script>
+
+<div id="triggerSettingsModal" onclick="if(event.target===this) triggerSettingsClose()">
+    <div class="modal-sheet modal-sheet-compact" style="gap:12px;">
+        <h3 class="modal-title" style="margin-bottom:4px;">Настройки триггера</h3>
+        <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.5);text-align:center;line-height:1.4;">Параметры срабатывания голосовой команды при приближении к точке</p>
+
+        <div class="trigger-setting-row">
+            <div class="trigger-setting-header">
+                <span class="label">Дистанция</span>
+                <span class="value" id="triggerDistVal">25 м</span>
+            </div>
+            <input type="range" id="triggerDist" min="1" max="25" value="25" step="1">
+        </div>
+
+        <div class="trigger-setting-row">
+            <div class="trigger-setting-header">
+                <span class="label">Направление</span>
+                <span class="value" id="triggerAzVal">±45°</span>
+            </div>
+            <input type="range" id="triggerAz" min="10" max="90" value="45" step="5">
+        </div>
+
+        <div class="trigger-setting-row">
+            <div class="trigger-setting-header">
+                <span class="label">Мин. скорость</span>
+                <span class="value" id="triggerSpeedVal">2 км/ч</span>
+            </div>
+            <input type="range" id="triggerSpeed" min="0" max="5" value="2" step="1">
+        </div>
+
+        <div style="display:flex;gap:12px;">
+            <button class="btn-action" onclick="triggerSettingsClose()" style="flex:1;">Отмена</button>
+            <button class="btn-action" onclick="triggerSettingsSave()" style="flex:1;background:linear-gradient(180deg, rgba(52,199,89,0.9), rgba(40,160,70,0.85));">Сохранить</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
 
