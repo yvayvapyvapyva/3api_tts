@@ -666,7 +666,7 @@ function renderTreeLevel(node, pathPrefix, container) {
         const el = document.createElement('button');
         el.className = 'route-item' + (isActive ? ' active' : '');
         if (isActive) el.style.cssText = 'background:rgba(48,209,88,0.2);border-color:rgba(48,209,88,0.4);';
-        el.draggable = true;
+        if (!('ontouchstart' in window)) el.draggable = true;
         el.setAttribute('data-key', route.key);
 
         const nameSpan = document.createElement('span');
