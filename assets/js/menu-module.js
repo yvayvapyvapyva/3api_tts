@@ -343,6 +343,13 @@ const MenuModule = {
             path = path + '/' + part;
             this._expandedFolders.add(path);
         }
+        if (!ROOT_CREATOR_FOLDER_VISIBLE) {
+            let barePath = '';
+            for (const part of route.name.split('/').filter(Boolean).slice(0, -1)) {
+                barePath = barePath ? barePath + '/' + part : part;
+                this._expandedFolders.add(barePath);
+            }
+        }
     },
 
     _buildPersonalCategoryTree() {
