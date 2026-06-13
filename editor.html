@@ -666,7 +666,7 @@ function renderTreeLevel(node, pathPrefix, container) {
         const el = document.createElement('button');
         el.className = 'route-item' + (isActive ? ' active' : '');
         if (isActive) el.style.cssText = 'background:rgba(48,209,88,0.2);border-color:rgba(48,209,88,0.4);';
-        if (!('ontouchstart' in window)) el.draggable = true;
+        el.draggable = true;
         el.setAttribute('data-key', route.key);
 
         const nameSpan = document.createElement('span');
@@ -790,36 +790,24 @@ const renderSettingsFileList = () => {
     }
     if (!list.dataset.touchDrag) {
         list.dataset.touchDrag = '1';
-        let touchDragKey = null, touchDragEl = null, touchDragTimer = null, touchStartY = 0;
-
-        function clearTouchDrag() {
-            if (touchDragTimer) { clearTimeout(touchDragTimer); touchDragTimer = null; }
-            if (touchDragEl) touchDragEl.classList.remove('dragging');
-            document.querySelectorAll('.category-folder.drag-over').forEach(el => el.classList.remove('drag-over'));
-            touchDragKey = null;
-            touchDragEl = null;
-        }
-
+        let touchDragKey = null, touchDragEl = null, touchDragging = false, touchLongPress = null;
         list.addEventListener('touchstart', e => {
             const item = e.target.closest('.route-item');
             if (!item) return;
-            clearTouchDrag();
             touchDragKey = item.dataset.key;
             touchDragEl = item;
-            touchStartY = e.touches[0].clientY;
-
-            touchDragTimer = setTimeout(() => {
-                touchDragTimer = null;
+            touchDragging = false;
+            touchLongPress = setTimeout(() => {
+                touchDragging = true;
                 if (touchDragEl) touchDragEl.classList.add('dragging');
-            }, 300);
+            }, 500);
         }, { passive: true });
-
         list.addEventListener('touchmove', e => {
             if (!touchDragKey) return;
-            // Если таймер ещё не сработал — отменяем при значительном движении (скролл)
-            if (touchDragTimer) {
-                const dy = Math.abs(e.touches[0].clientY - touchStartY);
-                if (dy > 10) { clearTouchDrag(); }
+            if (!touchDragging) {
+                clearTimeout(touchLongPress);
+                touchDragKey = null;
+                touchDragEl = null;
                 return;
             }
             e.preventDefault();
@@ -839,21 +827,22 @@ const renderSettingsFileList = () => {
             if (dt < th) list.scrollTop -= (th - dt) * 12 / th;
             else if (db < th) list.scrollTop += (th - db) * 12 / th;
         }, { passive: false });
-
         list.addEventListener('touchend', () => {
+            clearTimeout(touchLongPress);
             if (!touchDragKey) return;
-            // Если таймер не сработал — отменяем
-            if (touchDragTimer) { clearTouchDrag(); return; }
             if (touchDragEl) touchDragEl.classList.remove('dragging');
-            const folder = document.querySelector('.category-folder.drag-over');
-            if (folder) {
-                const fp = folder.dataset.path;
-                if (fp) moveRouteToFolder(touchDragKey, fp);
-                folder.classList.remove('drag-over');
+            if (touchDragging) {
+                const folder = document.querySelector('.category-folder.drag-over');
+                if (folder) {
+                    const fp = folder.dataset.path;
+                    if (fp) moveRouteToFolder(touchDragKey, fp);
+                    folder.classList.remove('drag-over');
+                }
             }
             document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
             touchDragKey = null;
             touchDragEl = null;
+            touchDragging = false;
         }, { passive: true });
     }
 };
