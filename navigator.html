@@ -503,9 +503,15 @@ function stopShockDetection() {
 
 const SHOCK_DEBOUNCE = 3000;
 
+function isAudioPlaying() {
+    return (!APP.navAudio.paused && APP.navAudio.currentTime > 0) ||
+           (!APP._commentAudio.paused && APP._commentAudio.currentTime > 0);
+}
+
 function onShock(event) {
     const gThreshold = APP.navConfig.SHOCK_THRESHOLD;
     if (gThreshold <= 0) return;
+    if (isAudioPlaying()) return;
     const { x, y, z } = event.accelerationIncludingGravity;
     const total = Math.sqrt(x*x + y*y + z*z);
     const impactG = Math.abs(total - 9.8) / 9.8;
@@ -522,6 +528,7 @@ const SPEED_ALERT_DEBOUNCE = 5000;
 function checkSpeedAlert(speed) {
     const threshold = APP.navConfig.SPEED_ALERT_THRESHOLD;
     if (threshold < 30) return;
+    if (isAudioPlaying()) return;
     if (speed > threshold) {
         const now = Date.now();
         if (now - APP._lastSpeedAlertTime < SPEED_ALERT_DEBOUNCE) return;
