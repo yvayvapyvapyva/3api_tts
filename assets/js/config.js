@@ -23,3 +23,5 @@ const COLORS = Object.fromEntries(
 // true — показывать корневые папки создателей в списке маршрутов
 // false — показывать маршруты без корневых папок создателей
 const ROOT_CREATOR_FOLDER_VISIBLE = false;
+
+const ZNAKI = ['1.png','2.png','3.png','4.png','5.png','10.png','2.4.png','2.5.png','20.png','3.1.png','3.27.png','3.31.png','30.png','4.1.1.png','4.1.2.png','40.png','5.15.2.png','5.19.1.png','5.19.2.png','5.21.png','5.5.png','50.png','6.16.png','6.3.1.png','6.4.png','sve.png'];
