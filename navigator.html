@@ -135,7 +135,7 @@ const APP = {
     map: null, userMarker: null, lastPos: null, lastAz: 0, rawAz: 0, lastTilt: 0, autoCenter: false, currentSpeed: 0,
     navPoints: [], navCurrentIndex: 0, navPreviewIndex: -1,
     navAudio: new Audio(), _commentAudio: new Audio(),
-    navConfig: { TRIGGER_DIST: 25, AZ_TOLERANCE: 45, SPEED_THRESHOLD: 2, SHOCK_THRESHOLD: 0, SHOCK_PHRASE: 'Сильный удар!' },
+    navConfig: { TRIGGER_DIST: 25, AZ_TOLERANCE: 45, SPEED_THRESHOLD: 2, SHOCK_THRESHOLD: 0, SHOCK_PHRASE: 'Сильный удар!', SPEED_ALERT_THRESHOLD: 0, SPEED_ALERT_PHRASE: 'Превышена максимальная скорость!' },
     _isScheme: true, _schemeLayer: null, _featuresLayer: null, _buildings: null,
     _driveActive: false, _driveRaf: null, _driveMarker: null, _driveShowFrom: -1,
     _driveSpeed: 120,
@@ -144,7 +144,8 @@ const APP = {
     _infoMarkers: [],
     _audioCache: new Map(),
     _commentMuted: false,
-    _lastShockTime: 0
+    _lastShockTime: 0,
+    _lastSpeedAlertTime: 0
 };
 
 const $ = id => document.getElementById(id);
@@ -360,6 +361,7 @@ function initGeolocation() {
             }
             APP.lastPos = coords;
             APP.currentSpeed = speed;
+            checkSpeedAlert(speed);
 
             if (APP.userMarker && APP._userMarkerEl) {
                 if (APP.autoCenter) {
@@ -420,13 +422,22 @@ function triggerSettingsOpen() {
     $('triggerSpeedVal').textContent = APP.navConfig.SPEED_THRESHOLD + ' км/ч';
     $('triggerShock').value = APP.navConfig.SHOCK_THRESHOLD;
     $('triggerShockPhrase').value = APP.navConfig.SHOCK_PHRASE;
+    $('triggerSpeedAlert').value = APP.navConfig.SPEED_ALERT_THRESHOLD === 0 ? 0 : APP.navConfig.SPEED_ALERT_THRESHOLD - 29;
+    $('triggerSpeedAlertPhrase').value = APP.navConfig.SPEED_ALERT_PHRASE;
     updateShockDisplay();
+    updateSpeedAlertDisplay();
     $('triggerSettingsModal').style.display = 'flex';
 }
 
 function updateShockDisplay() {
     const val = parseFloat($('triggerShock').value);
     $('triggerShockVal').textContent = val === 0 ? 'Выкл' : val + 'g';
+}
+
+function updateSpeedAlertDisplay() {
+    const raw = parseInt($('triggerSpeedAlert').value);
+    const val = raw === 0 ? 0 : raw + 29;
+    $('triggerSpeedAlertVal').textContent = val === 0 ? 'Выкл' : val + ' км/ч';
 }
 
 function triggerSettingsClose() {
@@ -439,16 +450,21 @@ function triggerSettingsSave() {
     const speed = parseInt($('triggerSpeed').value);
     const shock = parseFloat($('triggerShock').value);
     const phrase = $('triggerShockPhrase').value.trim() || 'Сильный удар!';
+    const speedAlertRaw = parseInt($('triggerSpeedAlert').value);
+    const speedAlert = speedAlertRaw === 0 ? 0 : speedAlertRaw + 29;
+    const speedAlertPhrase = $('triggerSpeedAlertPhrase').value.trim() || 'Превышена максимальная скорость!';
     APP.navConfig.TRIGGER_DIST = dist;
     APP.navConfig.AZ_TOLERANCE = az;
     APP.navConfig.SPEED_THRESHOLD = speed;
-    const wasEnabled = APP.navConfig.SHOCK_THRESHOLD > 0;
-    const nowEnabled = shock > 0;
+    const wasShockEnabled = APP.navConfig.SHOCK_THRESHOLD > 0;
+    const nowShockEnabled = shock > 0;
     APP.navConfig.SHOCK_THRESHOLD = shock;
     APP.navConfig.SHOCK_PHRASE = phrase;
-    if (wasEnabled !== nowEnabled) {
-        if (nowEnabled) startShockDetection(); else stopShockDetection();
+    if (wasShockEnabled !== nowShockEnabled) {
+        if (nowShockEnabled) startShockDetection(); else stopShockDetection();
     }
+    APP.navConfig.SPEED_ALERT_THRESHOLD = speedAlert;
+    APP.navConfig.SPEED_ALERT_PHRASE = speedAlertPhrase;
     triggerSettingsClose();
     showToast('Настройки сохранены', 'success');
 }
@@ -498,6 +514,19 @@ function onShock(event) {
         if (now - APP._lastShockTime < SHOCK_DEBOUNCE) return;
         APP._lastShockTime = now;
         playCommand(APP.navConfig.SHOCK_PHRASE || 'Сильный удар!').catch(() => {});
+    }
+}
+
+const SPEED_ALERT_DEBOUNCE = 5000;
+
+function checkSpeedAlert(speed) {
+    const threshold = APP.navConfig.SPEED_ALERT_THRESHOLD;
+    if (threshold < 30) return;
+    if (speed > threshold) {
+        const now = Date.now();
+        if (now - APP._lastSpeedAlertTime < SPEED_ALERT_DEBOUNCE) return;
+        APP._lastSpeedAlertTime = now;
+        playCommand(APP.navConfig.SPEED_ALERT_PHRASE || 'Превышена максимальная скорость!').catch(() => {});
     }
 }
 
@@ -915,6 +944,7 @@ async function precacheRouteAudio(data) {
     const cmdTexts = [...new Set(data.map(d => d.cmd).filter(t => t && t.trim()))];
     const commTexts = [...new Set(data.map(d => d.comm).filter(t => t && t.trim()))];
     cmdTexts.push(APP.navConfig.SHOCK_PHRASE || 'Сильный удар!');
+    cmdTexts.push(APP.navConfig.SPEED_ALERT_PHRASE || 'Превышена максимальная скорость!');
     const uncachedCmd = cmdTexts.filter(t => !APP._audioCache.has(t));
     const uncachedComm = commTexts.filter(t => !APP._audioCache.has(t));
     if (uncachedCmd.length + uncachedComm.length === 0) return;
@@ -1209,6 +1239,19 @@ ymaps3.ready.then(async () => {
             <div style="padding:0 16px 0;display:flex;gap:8px;align-items:center;">
                 <span style="font-size:13px;color:rgba(255,255,255,0.6);flex-shrink:0;">Команда:</span>
                 <input type="text" id="triggerShockPhrase" value="Сильный удар!" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 10px;font-size:14px;color:#fff;outline:none;">
+            </div>
+        </div>
+
+        <div class="trigger-setting-row">
+            <div class="trigger-setting-header">
+                <span class="label">Контроль скорости</span>
+                <span class="value" id="triggerSpeedAlertVal">Выкл</span>
+            </div>
+            <input type="range" id="triggerSpeedAlert" min="0" max="31" value="0" step="1" oninput="updateSpeedAlertDisplay()">
+            <div style="font-size:12px;color:rgba(255,255,255,0.4);padding:0 16px 4px;">Порог скорости: 30–60 км/ч. Левое положение — отключено. Шаг 1 км/ч.</div>
+            <div style="padding:0 16px 0;display:flex;gap:8px;align-items:center;">
+                <span style="font-size:13px;color:rgba(255,255,255,0.6);flex-shrink:0;">Команда:</span>
+                <input type="text" id="triggerSpeedAlertPhrase" value="Превышена максимальная скорость!" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 10px;font-size:14px;color:#fff;outline:none;">
             </div>
         </div>
 
