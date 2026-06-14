@@ -990,31 +990,18 @@ function startWakeLock() {
     if (navigator.wakeLock && navigator.wakeLock.request) {
         navigator.wakeLock.request('screen').then(lock => {
             _wakeLock = lock;
-        }).catch(() => startCanvasWakeLock());
-    } else {
-        startCanvasWakeLock();
+        }).catch(() => {});
     }
 }
 
-function startCanvasWakeLock() {
-    if (!wakeCanvas) {
-        wakeCanvas = document.createElement('canvas');
-        wakeCanvas.width = 1; wakeCanvas.height = 1;
-        const ctx = wakeCanvas.getContext('2d');
-        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 1, 1);
-        if (wakeCanvas.captureStream) wakeCanvasStream = wakeCanvas.captureStream(1);
-        else if (wakeCanvas.mozCaptureStream) wakeCanvasStream = wakeCanvas.mozCaptureStream(1);
+// iOS требует жеста пользователя для Wake Lock API — пробуем при первом клике
+document.addEventListener('click', () => {
+    if (!_wakeLock && navigator.wakeLock && navigator.wakeLock.request) {
+        navigator.wakeLock.request('screen').then(lock => {
+            _wakeLock = lock;
+        }).catch(() => {});
     }
-    if (wakeVideo && wakeCanvasStream) {
-        wakeVideo.srcObject = wakeCanvasStream;
-        wakeVideo.play().catch(() => {});
-    }
-    if (wakeLockInterval) clearInterval(wakeLockInterval);
-    wakeLockInterval = setInterval(() => {
-        if (wakeVideo && wakeVideo.paused) wakeVideo.play().catch(() => {});
-    }, 5000);
-    initAudioContext();
-}
+}, { once: true });
 
 function stopWakeLock() {
     if (_wakeLock) {
@@ -1024,10 +1011,6 @@ function stopWakeLock() {
     if (wakeLockInterval) {
         clearInterval(wakeLockInterval);
         wakeLockInterval = null;
-    }
-    if (wakeVideo) {
-        wakeVideo.pause();
-        wakeVideo.srcObject = null;
     }
     if (_wakeAudioCtx) {
         _wakeAudioCtx.close().catch(() => {});
