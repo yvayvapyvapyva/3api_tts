@@ -403,9 +403,12 @@ function onCompassEvent(event) {
     }
     let heading = event.webkitCompassHeading;
     if (heading === undefined || heading === null) {
-        heading = event.alpha;
+        if (event.alpha !== null && event.beta !== null && event.gamma !== null) {
+            heading = -(event.alpha + event.beta * event.gamma / 90);
+            heading = ((heading % 360) + 360) % 360;
+        }
     }
-    if (heading !== null && heading !== undefined) {
+    if (heading !== null && heading !== undefined && !isNaN(heading)) {
         APP.compassAz = heading;
     }
 }
