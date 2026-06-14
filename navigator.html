@@ -404,15 +404,8 @@ function onCompassEvent(event) {
     let heading = event.webkitCompassHeading;
     if (heading === undefined || heading === null) {
         if (event.alpha !== null && event.beta !== null && event.gamma !== null) {
-            const a = event.alpha * Math.PI / 180;
-            const b = event.beta * Math.PI / 180;
-            const g = event.gamma * Math.PI / 180;
-            const sb = Math.sin(b), cb = Math.cos(b);
-            const sg = Math.sin(g), cg = Math.cos(g);
-            const x = cb * Math.sin(a);
-            const y = sg * sb * Math.sin(a) - cg * Math.cos(a);
-            heading = Math.atan2(y, x) * 180 / Math.PI;
-            heading = (360 - heading + ((screen.orientation && screen.orientation.angle) || 0)) % 360;
+            heading = -(event.alpha + event.beta * event.gamma / 90);
+            heading = ((heading % 360) + 360) % 360;
         }
     }
     if (heading !== null && heading !== undefined && !isNaN(heading)) {
