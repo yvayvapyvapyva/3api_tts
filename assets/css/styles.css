@@ -1841,7 +1841,7 @@ input, textarea, select {
     box-sizing: border-box;
     caret-color: #fff;
     color: #ffffff;
-    overflow: hidden;
+    overflow-y: auto;
     min-height: 44px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
     -webkit-text-size-adjust: 100%;

@@ -1467,7 +1467,14 @@ function createPointCard(p, single = false) {
         const isOpen = infoBody.style.display !== 'none';
         infoBody.style.display = isOpen ? 'none' : 'block';
         infoToggle.querySelector('.info-arrow').textContent = isOpen ? '▶' : '▼';
-        if (!isOpen) rebuildInfoPointList(infoList, p, item);
+        if (!isOpen) {
+            const ta = infoBody.querySelector('.comm-input');
+            if (ta) {
+                ta.style.height = 'auto';
+                ta.style.height = ta.scrollHeight + 'px';
+            }
+            rebuildInfoPointList(infoList, p, item);
+        }
     };
     infoWrap.querySelector('.btn-info-add').onclick = () => {
         toggleM('pointsOrderModal');
