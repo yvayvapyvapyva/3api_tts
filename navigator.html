@@ -144,7 +144,8 @@ const APP = {
     _audioCache: new Map(),
     _commentMuted: false,
     _lastShockTime: 0,
-    _lastSpeedAlertTime: 0
+    _lastSpeedAlertTime: 0,
+    compassAz: null
 };
 
 const $ = id => document.getElementById(id);
@@ -357,6 +358,9 @@ function initGeolocation() {
                 const rawAz = calcAzimuth(APP.lastPos, coords);
                 APP.rawAz = rawAz;
                 APP.lastAz = rawAz;
+            } else if (APP.compassAz !== null) {
+                APP.rawAz = APP.compassAz;
+                APP.lastAz = APP.compassAz;
             }
             APP.lastPos = coords;
             APP.currentSpeed = speed;
@@ -388,6 +392,31 @@ function initGeolocation() {
             if (APP.navCurrentIndex >= 0 && APP.navPreviewIndex < 0) navCheckTriggers();
         }, () => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
     }
+}
+
+let _hasAbsoluteCompass = false;
+
+function onCompassEvent(event) {
+    if (event.absolute) {
+        _hasAbsoluteCompass = true;
+    } else if (_hasAbsoluteCompass) {
+        return;
+    }
+    let heading = event.webkitCompassHeading;
+    if (heading === undefined || heading === null) {
+        heading = event.alpha;
+    }
+    if (heading !== null && heading !== undefined) {
+        APP.compassAz = heading;
+    }
+}
+
+function initCompass() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        return;
+    }
+    try { window.addEventListener('deviceorientationabsolute', onCompassEvent); } catch (e) {}
+    window.addEventListener('deviceorientation', onCompassEvent);
 }
 
 function toggleAutoCenter() {
@@ -1001,8 +1030,16 @@ function startWakeLock() {
 }
 
 // iOS — запрос по первому клику (требуется жест пользователя)
-document.addEventListener('click', () => {
+document.addEventListener('click', async () => {
     if (!_wakeLock) requestWakeLock();
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+            const state = await DeviceOrientationEvent.requestPermission();
+            if (state === 'granted') {
+                window.addEventListener('deviceorientation', onCompassEvent);
+            }
+        } catch (e) {}
+    }
 }, { once: true });
 
 // Перезахват после выключения/включения экрана
@@ -1047,7 +1084,10 @@ document.addEventListener('pointerdown', (e) => {
     if (isBtn) openInstruction();
 }, { once: true });
 
-document.addEventListener('DOMContentLoaded', () => { setTimeout(startWakeLock, 500); });
+document.addEventListener('DOMContentLoaded', () => {
+    initCompass();
+    setTimeout(startWakeLock, 500);
+});
 
 ymaps3.ready.then(async () => {
     const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer, YMapDefaultSatelliteLayer, YMapMarker, YMapControls } = ymaps3;
