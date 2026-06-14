@@ -635,6 +635,7 @@ function renderInfoMarkers() {
 }
 
 function clearRoute() {
+    stopWakeLock();
     stopDrive();
     removeRouteObjects();
     clearInfoMarkers();
@@ -982,51 +983,70 @@ async function precacheRouteAudio(data) {
     updateHud();
 }
 
-let wakeLockInterval = null;
+let wakeLockInterval = null, wakeCanvas = null, wakeCanvasStream = null, _wakeLock = null, _wakeAudioCtx = null;
 const wakeVideo = document.getElementById('wakeLockVideo');
-let wakeCanvas = null, wakeCanvasStream = null;
 
-function initWakeVideo() {
+function startWakeLock() {
+    if (navigator.wakeLock && navigator.wakeLock.request) {
+        navigator.wakeLock.request('screen').then(lock => {
+            _wakeLock = lock;
+        }).catch(() => startCanvasWakeLock());
+    } else {
+        startCanvasWakeLock();
+    }
+}
+
+function startCanvasWakeLock() {
     if (!wakeCanvas) {
         wakeCanvas = document.createElement('canvas');
         wakeCanvas.width = 1; wakeCanvas.height = 1;
         const ctx = wakeCanvas.getContext('2d');
         ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 1, 1);
-        if (wakeCanvas.captureStream) wakeCanvasStream = wakeCanvas.captureStream(30);
-        else if (wakeCanvas.mozCaptureStream) wakeCanvasStream = wakeCanvas.mozCaptureStream(30);
+        if (wakeCanvas.captureStream) wakeCanvasStream = wakeCanvas.captureStream(1);
+        else if (wakeCanvas.mozCaptureStream) wakeCanvasStream = wakeCanvas.mozCaptureStream(1);
     }
-}
-
-function initAudioContext() {
-    if (typeof AudioContext !== 'undefined') {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        gain.gain.value = 0;
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); setTimeout(() => osc.stop(), 100);
-        return audioCtx;
-    }
-    return null;
-}
-
-function startWakeLock() {
-    initWakeVideo();
     if (wakeVideo && wakeCanvasStream) {
         wakeVideo.srcObject = wakeCanvasStream;
         wakeVideo.play().catch(() => {});
     }
-    const audioCtx = initAudioContext();
     if (wakeLockInterval) clearInterval(wakeLockInterval);
     wakeLockInterval = setInterval(() => {
         if (wakeVideo && wakeVideo.paused) wakeVideo.play().catch(() => {});
-        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-        if (wakeCanvas) {
-            const ctx = wakeCanvas.getContext('2d');
-            ctx.fillStyle = '#' + Math.floor(Math.random()*16777215).toString(16);
-            ctx.fillRect(0, 0, 1, 1);
-        }
-    }, 3000);
+    }, 5000);
+    initAudioContext();
+}
+
+function stopWakeLock() {
+    if (_wakeLock) {
+        _wakeLock.release().catch(() => {});
+        _wakeLock = null;
+    }
+    if (wakeLockInterval) {
+        clearInterval(wakeLockInterval);
+        wakeLockInterval = null;
+    }
+    if (wakeVideo) {
+        wakeVideo.pause();
+        wakeVideo.srcObject = null;
+    }
+    if (_wakeAudioCtx) {
+        _wakeAudioCtx.close().catch(() => {});
+        _wakeAudioCtx = null;
+    }
+}
+
+function initAudioContext() {
+    if (!_wakeAudioCtx && typeof AudioContext !== 'undefined') {
+        _wakeAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = _wakeAudioCtx.createOscillator();
+        const gain = _wakeAudioCtx.createGain();
+        gain.gain.value = 0;
+        osc.connect(gain); gain.connect(_wakeAudioCtx.destination);
+        osc.start();
+    }
+    if (_wakeAudioCtx && _wakeAudioCtx.state === 'suspended') {
+        _wakeAudioCtx.resume();
+    }
 }
 
 function openInstruction() {
