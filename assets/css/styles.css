@@ -1327,14 +1327,7 @@ html, body {
     --panel-blur: blur(22px);
 }
 
-#wakeLockVideo {
-    position: fixed;
-    width: 1px;
-    height: 1px;
-    opacity: 0.001;
-    pointer-events: none;
-    z-index: -9999;
-}
+
 
 #welcomeScreen {
     position: fixed;

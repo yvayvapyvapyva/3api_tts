@@ -75,7 +75,6 @@
     </div>
 </div>
 
-<video id="wakeLockVideo" playsinline muted loop></video>
 
 <div id="map"></div>
 <button id="mapTypeBtn" class="circle-btn" title="Спутник / Схема" style="top: calc(76px + env(safe-area-inset-top)); left: 12px;">
@@ -983,52 +982,38 @@ async function precacheRouteAudio(data) {
     updateHud();
 }
 
-let wakeLockInterval = null, wakeCanvas = null, wakeCanvasStream = null, _wakeLock = null, _wakeAudioCtx = null;
-const wakeVideo = document.getElementById('wakeLockVideo');
+let _wakeLock = null;
 
-function startWakeLock() {
-    if (navigator.wakeLock && navigator.wakeLock.request) {
-        navigator.wakeLock.request('screen').then(lock => {
-            _wakeLock = lock;
-        }).catch(() => {});
-    }
+async function requestWakeLock() {
+    if (!navigator.wakeLock || !navigator.wakeLock.request) return;
+    try {
+        const lock = await navigator.wakeLock.request('screen');
+        lock.addEventListener('release', () => {
+            _wakeLock = null;
+            if (document.visibilityState === 'visible') requestWakeLock();
+        });
+        _wakeLock = lock;
+    } catch (e) {}
 }
 
-// iOS требует жеста пользователя для Wake Lock API — пробуем при первом клике
+function startWakeLock() {
+    requestWakeLock();
+}
+
+// iOS — запрос по первому клику (требуется жест пользователя)
 document.addEventListener('click', () => {
-    if (!_wakeLock && navigator.wakeLock && navigator.wakeLock.request) {
-        navigator.wakeLock.request('screen').then(lock => {
-            _wakeLock = lock;
-        }).catch(() => {});
-    }
+    if (!_wakeLock) requestWakeLock();
 }, { once: true });
+
+// Перезахват после выключения/включения экрана
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && !_wakeLock) requestWakeLock();
+});
 
 function stopWakeLock() {
     if (_wakeLock) {
         _wakeLock.release().catch(() => {});
         _wakeLock = null;
-    }
-    if (wakeLockInterval) {
-        clearInterval(wakeLockInterval);
-        wakeLockInterval = null;
-    }
-    if (_wakeAudioCtx) {
-        _wakeAudioCtx.close().catch(() => {});
-        _wakeAudioCtx = null;
-    }
-}
-
-function initAudioContext() {
-    if (!_wakeAudioCtx && typeof AudioContext !== 'undefined') {
-        _wakeAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = _wakeAudioCtx.createOscillator();
-        const gain = _wakeAudioCtx.createGain();
-        gain.gain.value = 0;
-        osc.connect(gain); gain.connect(_wakeAudioCtx.destination);
-        osc.start();
-    }
-    if (_wakeAudioCtx && _wakeAudioCtx.state === 'suspended') {
-        _wakeAudioCtx.resume();
     }
 }
 
