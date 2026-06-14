@@ -175,7 +175,8 @@ if (speedEl) {
 $('commentToggleBtn').addEventListener('click', () => {
     APP._commentMuted = !APP._commentMuted;
     $('commentToggleBtn').classList.toggle('muted', APP._commentMuted);
-    showToast(APP._commentMuted ? '🔇 Озвучка комментариев отключена' : '🔊 Озвучка комментариев включена', 'info', 2000);
+    $('commentBlock').style.display = APP._commentMuted ? 'none' : '';
+    showToast(APP._commentMuted ? '🔇 Озвучка и отображение комментариев отключены' : '🔊 Озвучка и отображение комментариев включены', 'info', 2000);
 });
 
 function getUserLocSvg(azimuth = 0) {
@@ -654,6 +655,7 @@ function updateHud() {
     }
 
     $('commentText').textContent = t.comm;
+    $('commentBlock').style.display = APP._commentMuted ? 'none' : '';
     $('commentText').style.opacity = (t.comm && APP._audioCache.has(t.comm)) ? '1' : '0.35';
     $('commentBlock').classList.toggle('visible', t.comm && t.comm.trim() !== '');
 }
