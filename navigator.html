@@ -357,12 +357,6 @@ function initGeolocation() {
                 const rawAz = calcAzimuth(APP.lastPos, coords);
                 APP.rawAz = rawAz;
                 APP.lastAz = rawAz;
-                if (APP._compassRawAz !== undefined) {
-                    let diff = Math.abs(rawAz - APP._compassRawAz);
-                    if (diff > 180) diff = 360 - diff;
-                    if (diff > 135) _compassCorrection = 180;
-                    else if (diff < 45 && _compassCorrection !== 0) _compassCorrection = 0;
-                }
             } else if (APP.compassAz !== null) {
                 APP.rawAz = APP.compassAz;
                 APP.lastAz = APP.compassAz;
@@ -400,7 +394,6 @@ function initGeolocation() {
 }
 
 let _hasAbsoluteCompass = false;
-let _compassCorrection = 0;
 
 function onCompassEvent(event) {
     if (event.absolute) {
@@ -413,8 +406,7 @@ function onCompassEvent(event) {
         heading = event.alpha;
     }
     if (heading !== null && heading !== undefined) {
-        APP._compassRawAz = heading;
-        APP.compassAz = ((heading + _compassCorrection) % 360 + 360) % 360;
+        APP.compassAz = heading;
     }
 }
 
@@ -422,8 +414,7 @@ function initCompass() {
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         return;
     }
-    try { window.addEventListener('deviceorientationabsolute', onCompassEvent); } catch (e) {}
-    window.addEventListener('deviceorientation', onCompassEvent);
+    window.addEventListener('deviceorientationabsolute', onCompassEvent);
 }
 
 function toggleAutoCenter() {
