@@ -1141,6 +1141,7 @@ ymaps3.ready.then(async () => {
     }
 
     let locatePressTimer = null;
+    $('locateBtn').addEventListener('click', toggleAutoCenter);
     $('telemetryPanel').addEventListener('pointerdown', () => {
         locatePressTimer = setTimeout(() => {
             locatePressTimer = null;
