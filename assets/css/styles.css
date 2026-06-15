@@ -47,6 +47,14 @@ html, body {
 
 }
 
+#wakeLockVideo {
+    position: fixed;
+    width: 1px;
+    height: 1px;
+    opacity: 0.001;
+    pointer-events: none;
+}
+
 /* ============================================
    Стили карты (общие)
    ============================================ */

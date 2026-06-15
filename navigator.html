@@ -76,6 +76,7 @@
 </div>
 
 
+<video id="wakeLockVideo" playsinline muted loop></video>
 <div id="map"></div>
 <button id="mapTypeBtn" class="circle-btn" title="Спутник / Схема" style="top: calc(76px + env(safe-area-inset-top)); left: 12px;">
     <svg viewBox="0 0 24 24"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg>
@@ -144,8 +145,7 @@ const APP = {
     _audioCache: new Map(),
     _commentMuted: false,
     _lastShockTime: 0,
-    _lastSpeedAlertTime: 0,
-    compassAz: null
+    _lastSpeedAlertTime: 0
 };
 
 const $ = id => document.getElementById(id);
@@ -193,6 +193,7 @@ function getUserLocSvg(azimuth = 0) {
 
 function updateUserMarkerRotation() {
     if (!APP._userMarkerEl || APP.lastAz === null || !APP.map) return;
+    if (APP.currentSpeed < APP.navConfig.SPEED_THRESHOLD) return;
     const arrow = APP._userMarkerEl.querySelector('#user-arrow');
     if (arrow) {
         const mapAz = (APP.map.azimuth || 0) * (180 / Math.PI);
@@ -357,9 +358,6 @@ function initGeolocation() {
                 const rawAz = calcAzimuth(APP.lastPos, coords);
                 APP.rawAz = rawAz;
                 APP.lastAz = rawAz;
-            } else if (APP.compassAz !== null) {
-                APP.rawAz = APP.compassAz;
-                APP.lastAz = APP.compassAz;
             }
             APP.lastPos = coords;
             APP.currentSpeed = speed;
@@ -391,33 +389,6 @@ function initGeolocation() {
             if (APP.navCurrentIndex >= 0 && APP.navPreviewIndex < 0) navCheckTriggers();
         }, () => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
     }
-}
-
-let _hasAbsoluteCompass = false;
-
-function onCompassEvent(event) {
-    if (event.absolute) {
-        _hasAbsoluteCompass = true;
-    } else if (_hasAbsoluteCompass) {
-        return;
-    }
-    let heading = event.webkitCompassHeading;
-    if (heading === undefined || heading === null) {
-        if (event.alpha !== null && event.beta !== null && event.gamma !== null) {
-            heading = -(event.alpha + event.beta * event.gamma / 90);
-            heading = ((heading % 360) + 360) % 360;
-        }
-    }
-    if (heading !== null && heading !== undefined && !isNaN(heading)) {
-        APP.compassAz = heading;
-    }
-}
-
-function initCompass() {
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        return;
-    }
-    window.addEventListener('deviceorientationabsolute', onCompassEvent);
 }
 
 function toggleAutoCenter() {
@@ -664,7 +635,6 @@ function renderInfoMarkers() {
 }
 
 function clearRoute() {
-    stopWakeLock();
     stopDrive();
     removeRouteObjects();
     clearInfoMarkers();
@@ -1013,6 +983,8 @@ async function precacheRouteAudio(data) {
 }
 
 let _wakeLock = null;
+let wakeLockInterval = null, wakeCanvas = null, wakeCanvasStream = null, _wakeAudioCtx = null;
+const wakeVideo = document.getElementById('wakeLockVideo');
 
 async function requestWakeLock() {
     if (!navigator.wakeLock || !navigator.wakeLock.request) return;
@@ -1023,24 +995,64 @@ async function requestWakeLock() {
             if (document.visibilityState === 'visible') requestWakeLock();
         });
         _wakeLock = lock;
+        stopCanvasWakeLock();
     } catch (e) {}
+}
+
+function startCanvasWakeLock() {
+    if (_wakeLock) return;
+    if (!wakeCanvas) {
+        wakeCanvas = document.createElement('canvas');
+        wakeCanvas.width = 1; wakeCanvas.height = 1;
+        const ctx = wakeCanvas.getContext('2d');
+        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 1, 1);
+        if (wakeCanvas.captureStream) wakeCanvasStream = wakeCanvas.captureStream(1);
+        else if (wakeCanvas.mozCaptureStream) wakeCanvasStream = wakeCanvas.mozCaptureStream(1);
+    }
+    if (wakeVideo && wakeCanvasStream) {
+        wakeVideo.srcObject = wakeCanvasStream;
+        wakeVideo.play().catch(() => {});
+    }
+    if (wakeLockInterval) clearInterval(wakeLockInterval);
+    wakeLockInterval = setInterval(() => {
+        if (wakeVideo && wakeVideo.paused) wakeVideo.play().catch(() => {});
+    }, 5000);
+    if (!_wakeAudioCtx && typeof AudioContext !== 'undefined') {
+        _wakeAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = _wakeAudioCtx.createOscillator();
+        const gain = _wakeAudioCtx.createGain();
+        gain.gain.value = 0;
+        osc.connect(gain); gain.connect(_wakeAudioCtx.destination);
+        osc.start();
+    }
+    if (_wakeAudioCtx && _wakeAudioCtx.state === 'suspended') {
+        _wakeAudioCtx.resume();
+    }
+}
+
+function stopCanvasWakeLock() {
+    if (wakeLockInterval) {
+        clearInterval(wakeLockInterval);
+        wakeLockInterval = null;
+    }
+    if (wakeVideo) {
+        wakeVideo.pause();
+        wakeVideo.srcObject = null;
+    }
+    if (_wakeAudioCtx) {
+        _wakeAudioCtx.close().catch(() => {});
+        _wakeAudioCtx = null;
+    }
 }
 
 function startWakeLock() {
     requestWakeLock();
+    startCanvasWakeLock();
 }
 
 // iOS — запрос по первому клику (требуется жест пользователя)
 document.addEventListener('click', async () => {
-    if (!_wakeLock) requestWakeLock();
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try {
-            const state = await DeviceOrientationEvent.requestPermission();
-            if (state === 'granted') {
-                window.addEventListener('deviceorientation', onCompassEvent);
-            }
-        } catch (e) {}
-    }
+    if (!_wakeLock) await requestWakeLock();
 }, { once: true });
 
 // Перезахват после выключения/включения экрана
@@ -1053,6 +1065,7 @@ function stopWakeLock() {
         _wakeLock.release().catch(() => {});
         _wakeLock = null;
     }
+    stopCanvasWakeLock();
 }
 
 function openInstruction() {
@@ -1086,7 +1099,6 @@ document.addEventListener('pointerdown', (e) => {
 }, { once: true });
 
 document.addEventListener('DOMContentLoaded', () => {
-    initCompass();
     setTimeout(startWakeLock, 500);
 });
 
