@@ -1065,14 +1065,6 @@ document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && !_wakeLock) requestWakeLock();
 });
 
-function stopWakeLock() {
-    if (_wakeLock) {
-        _wakeLock.release().catch(() => {});
-        _wakeLock = null;
-    }
-    stopCanvasWakeLock();
-}
-
 function openInstruction() {
     const modal = $('instructionModal');
     const body = $('instructionBody');
