@@ -1141,26 +1141,25 @@ ymaps3.ready.then(async () => {
     }
 
     let locatePressTimer = null;
-    $('locateBtn').addEventListener('pointerdown', () => {
+    $('telemetryPanel').addEventListener('pointerdown', () => {
         locatePressTimer = setTimeout(() => {
             locatePressTimer = null;
             triggerSettingsOpen();
-        }, 2000);
+        }, 1000);
     });
-    $('locateBtn').addEventListener('pointerup', () => {
-        if (locatePressTimer) {
-            clearTimeout(locatePressTimer);
-            locatePressTimer = null;
-            toggleAutoCenter();
-        }
-    });
-    $('locateBtn').addEventListener('pointerleave', () => {
+    $('telemetryPanel').addEventListener('pointerup', () => {
         if (locatePressTimer) {
             clearTimeout(locatePressTimer);
             locatePressTimer = null;
         }
     });
-    $('locateBtn').addEventListener('pointercancel', () => {
+    $('telemetryPanel').addEventListener('pointerleave', () => {
+        if (locatePressTimer) {
+            clearTimeout(locatePressTimer);
+            locatePressTimer = null;
+        }
+    });
+    $('telemetryPanel').addEventListener('pointercancel', () => {
         if (locatePressTimer) {
             clearTimeout(locatePressTimer);
             locatePressTimer = null;
