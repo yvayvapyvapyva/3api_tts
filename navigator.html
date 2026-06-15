@@ -982,8 +982,7 @@ async function precacheRouteAudio(data) {
     updateHud();
 }
 
-let _wakeLock = null;
-let wakeLockInterval = null, wakeCanvas = null, wakeCanvasStream = null, _wakeAudioCtx = null;
+let _wakeLock = null, wakeLockInterval = null, wakeCanvas = null, wakeCanvasStream = null, _wakeAudioCtx = null;
 const wakeVideo = document.getElementById('wakeLockVideo');
 
 async function requestWakeLock() {
@@ -992,11 +991,13 @@ async function requestWakeLock() {
         const lock = await navigator.wakeLock.request('screen');
         lock.addEventListener('release', () => {
             _wakeLock = null;
-            if (document.visibilityState === 'visible') requestWakeLock();
+            if (document.visibilityState === 'visible') startWakeLock();
         });
         _wakeLock = lock;
         stopCanvasWakeLock();
-    } catch (e) {}
+    } catch (e) {
+        startCanvasWakeLock();
+    }
 }
 
 function startCanvasWakeLock() {
@@ -1006,8 +1007,8 @@ function startCanvasWakeLock() {
         wakeCanvas.width = 1; wakeCanvas.height = 1;
         const ctx = wakeCanvas.getContext('2d');
         ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 1, 1);
-        if (wakeCanvas.captureStream) wakeCanvasStream = wakeCanvas.captureStream(1);
-        else if (wakeCanvas.mozCaptureStream) wakeCanvasStream = wakeCanvas.mozCaptureStream(1);
+        if (wakeCanvas.captureStream) wakeCanvasStream = wakeCanvas.captureStream(30);
+        else if (wakeCanvas.mozCaptureStream) wakeCanvasStream = wakeCanvas.mozCaptureStream(30);
     }
     if (wakeVideo && wakeCanvasStream) {
         wakeVideo.srcObject = wakeCanvasStream;
@@ -1016,7 +1017,12 @@ function startCanvasWakeLock() {
     if (wakeLockInterval) clearInterval(wakeLockInterval);
     wakeLockInterval = setInterval(() => {
         if (wakeVideo && wakeVideo.paused) wakeVideo.play().catch(() => {});
-    }, 5000);
+        if (wakeCanvas) {
+            const ctx = wakeCanvas.getContext('2d');
+            ctx.fillStyle = '#' + Math.floor(Math.random()*16777215).toString(16);
+            ctx.fillRect(0, 0, 1, 1);
+        }
+    }, 3000);
     if (!_wakeAudioCtx && typeof AudioContext !== 'undefined') {
         _wakeAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = _wakeAudioCtx.createOscillator();
@@ -1047,7 +1053,6 @@ function stopCanvasWakeLock() {
 
 function startWakeLock() {
     requestWakeLock();
-    startCanvasWakeLock();
 }
 
 // iOS — запрос по первому клику (требуется жест пользователя)
