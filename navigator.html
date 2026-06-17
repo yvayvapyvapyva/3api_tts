@@ -135,7 +135,7 @@ const APP = {
     map: null, userMarker: null, lastPos: null, lastAz: 0, rawAz: 0, lastTilt: 0, autoCenter: false, currentSpeed: 0,
     navPoints: [], navCurrentIndex: 0, navPreviewIndex: -1,
     navAudio: new Audio(), _commentAudio: new Audio(),
-    navConfig: { TRIGGER_DIST: 25, AZ_TOLERANCE: 45, SPEED_THRESHOLD: 2, SHOCK_THRESHOLD: 0, SHOCK_PHRASE: 'Сильный удар!', SPEED_ALERT_THRESHOLD: 0, SPEED_ALERT_PHRASE: 'Превышена максимальная скорость!' },
+    navConfig: { TRIGGER_DIST: 25, AZ_TOLERANCE: 45, SPEED_THRESHOLD: 2, SHOCK_THRESHOLD: 0, SHOCK_PHRASE: 'Сильный удар!', SPEED_ALERT_THRESHOLD: 58, SPEED_ALERT_PHRASE: 'Превышена максимальная скорость!' },
     _isScheme: true, _schemeLayer: null, _featuresLayer: null, _buildings: null,
     _driveActive: false, _driveRaf: null, _driveMarker: null, _driveShowFrom: -1,
     _driveSpeed: 120,
@@ -408,9 +408,6 @@ function toggleAutoCenter() {
         });
     }
     showToast(APP.autoCenter ? 'Привязка включена' : 'Привязка отключена');
-}
-
-function triggerSettingsLoad() {
 }
 
 function triggerSettingsOpen() {
@@ -1177,8 +1174,6 @@ ymaps3.ready.then(async () => {
         $('triggerSpeedVal').textContent = this.value + ' км/ч';
     });
 
-    triggerSettingsLoad();
-
     $('commentBlock').addEventListener('click', () => {
         $('commentBlock').classList.remove('visible'); clearInfoMarkers();
     });
@@ -1246,63 +1241,68 @@ ymaps3.ready.then(async () => {
 </script>
 
 <div id="triggerSettingsModal" onclick="if(event.target===this) triggerSettingsClose()">
-    <div class="modal-sheet modal-sheet-compact" style="gap:12px;">
-        <h3 class="modal-title" style="margin-bottom:4px;">Настройки триггера</h3>
-        <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.5);text-align:center;line-height:1.4;">Параметры срабатывания голосовой команды при приближении к точке</p>
+    <div class="modal-sheet modal-sheet-compact">
+        <h3 class="modal-title">Настройки</h3>
 
-        <div class="trigger-setting-row">
-            <div class="trigger-setting-header">
-                <span class="label">Дистанция</span>
-                <span class="value" id="triggerDistVal">25 м</span>
-            </div>
-            <input type="range" id="triggerDist" min="1" max="25" value="25" step="1">
-        </div>
+        <div class="ts-section">
+            <div class="ts-section-title">Навигация</div>
 
-        <div class="trigger-setting-row">
-            <div class="trigger-setting-header">
-                <span class="label">Направление</span>
-                <span class="value" id="triggerAzVal">±45°</span>
+            <div class="trigger-setting-row">
+                <div class="trigger-setting-header">
+                    <span class="label">Дистанция</span>
+                    <span class="value" id="triggerDistVal">25 м</span>
+                </div>
+                <input type="range" id="triggerDist" min="1" max="25" value="25" step="1">
             </div>
-            <input type="range" id="triggerAz" min="10" max="180" value="45" step="5">
-        </div>
 
-        <div class="trigger-setting-row">
-            <div class="trigger-setting-header">
-                <span class="label">Мин. скорость</span>
-                <span class="value" id="triggerSpeedVal">2 км/ч</span>
+            <div class="trigger-setting-row">
+                <div class="trigger-setting-header">
+                    <span class="label">Направление</span>
+                    <span class="value" id="triggerAzVal">±45°</span>
+                </div>
+                <input type="range" id="triggerAz" min="10" max="180" value="45" step="5">
             </div>
-            <input type="range" id="triggerSpeed" min="0" max="5" value="2" step="1">
-        </div>
 
-        <div class="trigger-setting-row">
-            <div class="trigger-setting-header">
-                <span class="label">Детекция ударов</span>
-                <span class="value" id="triggerShockVal">Выкл</span>
-            </div>
-            <input type="range" id="triggerShock" min="0" max="3" value="0" step="0.5" oninput="updateShockDisplay()">
-            <div style="font-size:12px;color:rgba(255,255,255,0.4);padding:0 16px 4px;">Чувствительность: 0.5–3g. Левое положение — отключено.</div>
-            <div style="padding:0 16px 0;display:flex;gap:8px;align-items:center;">
-                <span style="font-size:13px;color:rgba(255,255,255,0.6);flex-shrink:0;">Команда:</span>
-                <input type="text" id="triggerShockPhrase" value="Сильный удар!" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 10px;font-size:14px;color:#fff;outline:none;">
+            <div class="trigger-setting-row">
+                <div class="trigger-setting-header">
+                    <span class="label">Мин. скорость</span>
+                    <span class="value" id="triggerSpeedVal">2 км/ч</span>
+                </div>
+                <input type="range" id="triggerSpeed" min="0" max="5" value="2" step="1">
             </div>
         </div>
 
-        <div class="trigger-setting-row">
-            <div class="trigger-setting-header">
-                <span class="label">Контроль скорости</span>
-                <span class="value" id="triggerSpeedAlertVal">Выкл</span>
+        <div class="ts-section">
+            <div class="ts-section-title">Детекция</div>
+
+            <div class="trigger-setting-row">
+                <div class="trigger-setting-header">
+                    <span class="label">Детекция ударов</span>
+                    <span class="value" id="triggerShockVal">Выкл</span>
+                </div>
+                <input type="range" id="triggerShock" min="0" max="3" value="0" step="0.5" oninput="updateShockDisplay()">
+                <div class="ts-phrase-row">
+                    <span class="ts-phrase-label">Команда:</span>
+                    <input type="text" id="triggerShockPhrase" value="Сильный удар!">
+                </div>
             </div>
-            <input type="range" id="triggerSpeedAlert" min="0" max="31" value="0" step="1" oninput="updateSpeedAlertDisplay()">
-            <div style="font-size:12px;color:rgba(255,255,255,0.4);padding:0 16px 4px;">Порог скорости: 30–60 км/ч. Левое положение — отключено. Шаг 1 км/ч.</div>
-            <div style="padding:0 16px 0;display:flex;gap:8px;align-items:center;">
-                <span style="font-size:13px;color:rgba(255,255,255,0.6);flex-shrink:0;">Команда:</span>
-                <input type="text" id="triggerSpeedAlertPhrase" value="Превышена максимальная скорость!" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 10px;font-size:14px;color:#fff;outline:none;">
+
+            <div class="trigger-setting-row">
+                <div class="trigger-setting-header">
+                    <span class="label">Контроль скорости</span>
+                    <span class="value" id="triggerSpeedAlertVal">Выкл</span>
+                </div>
+                <input type="range" id="triggerSpeedAlert" min="0" max="31" value="0" step="1" oninput="updateSpeedAlertDisplay()">
+                <div class="ts-phrase-row">
+                    <span class="ts-phrase-label">Команда:</span>
+                    <input type="text" id="triggerSpeedAlertPhrase" value="Превышена максимальная скорость!">
+                </div>
             </div>
         </div>
 
-        <div style="display:flex;gap:12px;">
-            <button class="btn-action" onclick="triggerSettingsClose()" style="flex:1;">Отмена</button>
-            <button class="btn-action" onclick="triggerSettingsSave()" style="flex:1;background:linear-gradient(180deg, rgba(52,199,89,0.9), rgba(40,160,70,0.85));">Сохранить</button>
+        <div class="ts-actions">
+            <button class="btn-action ts-cancel" onclick="triggerSettingsClose()">Отмена</button>
+            <button class="btn-action ts-save" onclick="triggerSettingsSave()">Сохранить</button>
         </div>
     </div>
 </div>
