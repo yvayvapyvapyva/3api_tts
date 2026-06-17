@@ -1261,9 +1261,8 @@ ymaps3.ready.then(async () => {
                 </div>
                 <div id="triggerShockControls">
                     <input type="range" id="triggerShock" min="0.5" max="3" value="1" step="0.5" oninput="updateShockDisplay()">
-                    <div class="ts-phrase-row">
-                        <span class="ts-phrase-label">Команда:</span>
-                        <input type="text" id="triggerShockPhrase" value="Сильный удар!">
+                    <div style="padding:4px 16px 6px;">
+                        <input type="text" id="triggerShockPhrase" value="Сильный удар!" style="width:100%;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;box-sizing:border-box;border:none;">
                     </div>
                 </div>
             </div>
@@ -1280,9 +1279,8 @@ ymaps3.ready.then(async () => {
                     <div style="padding:4px 16px 6px;">
                         <input type="text" inputmode="numeric" pattern="[0-9]*" id="triggerSpeedAlert" value="58" style="width:100%;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);color:#fff;font-size:16px;font-weight:600;outline:none;box-sizing:border-box;" oninput="updateSpeedAlertDisplay()">
                     </div>
-                    <div class="ts-phrase-row">
-                        <span class="ts-phrase-label">Команда:</span>
-                        <input type="text" id="triggerSpeedAlertPhrase" value="Превышена максимальная скорость!">
+                    <div style="padding:4px 16px 6px;">
+                        <input type="text" id="triggerSpeedAlertPhrase" value="Превышена максимальная скорость!" style="width:100%;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;box-sizing:border-box;border:none;">
                     </div>
                 </div>
             </div>
