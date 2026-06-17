@@ -18,6 +18,38 @@
     <script src="assets/js/tg-user.js"></script>
     <script src="assets/js/menu-module.js"></script>
 <style>
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 32px;
+    flex-shrink: 0;
+}
+.toggle-input { display: none; }
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: rgba(255,255,255,0.15);
+    border-radius: 32px;
+    transition: 0.25s;
+}
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 26px; height: 26px;
+    left: 3px; bottom: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.25s;
+}
+.toggle-input:checked + .toggle-slider {
+    background: #30D158;
+}
+.toggle-input:checked + .toggle-slider::before {
+    transform: translateX(20px);
+}
+
 #speedSliderWrap {
     position: fixed; right: 12px; top: 50%; transform: translateY(-50%);
     background: transparent; border: none;
@@ -162,15 +194,23 @@ function showToast(text, type = 'info', duration = 2000) {
     toastTimer = setTimeout(() => el.classList.remove('show'), duration);
 }
 
-let clickCount = 0;
-let clickTimer = null;
+let _editorHoldTimer = null;
 const speedEl = document.getElementById('telemetryPanel');
 if (speedEl) {
-    speedEl.addEventListener('click', () => {
-        clickCount++;
-        clearTimeout(clickTimer);
-        if (clickCount >= 3) { clickCount = 0; window.location.href = 'editor.html'; }
-        else clickTimer = setTimeout(() => { clickCount = 0; }, 500);
+    speedEl.addEventListener('pointerdown', () => {
+        _editorHoldTimer = setTimeout(() => {
+            _editorHoldTimer = null;
+            window.location.href = 'editor.html';
+        }, 1000);
+    });
+    speedEl.addEventListener('pointerup', () => {
+        if (_editorHoldTimer) { clearTimeout(_editorHoldTimer); _editorHoldTimer = null; }
+    });
+    speedEl.addEventListener('pointerleave', () => {
+        if (_editorHoldTimer) { clearTimeout(_editorHoldTimer); _editorHoldTimer = null; }
+    });
+    speedEl.addEventListener('pointercancel', () => {
+        if (_editorHoldTimer) { clearTimeout(_editorHoldTimer); _editorHoldTimer = null; }
     });
 }
 
@@ -411,30 +451,30 @@ function toggleAutoCenter() {
 }
 
 function triggerSettingsOpen() {
-    $('triggerDist').value = APP.navConfig.TRIGGER_DIST;
-    $('triggerDistVal').textContent = APP.navConfig.TRIGGER_DIST + ' м';
-    $('triggerAz').value = APP.navConfig.AZ_TOLERANCE;
-    $('triggerAzVal').textContent = '±' + APP.navConfig.AZ_TOLERANCE + '°';
-    $('triggerSpeed').value = APP.navConfig.SPEED_THRESHOLD;
-    $('triggerSpeedVal').textContent = APP.navConfig.SPEED_THRESHOLD + ' км/ч';
-    $('triggerShock').value = APP.navConfig.SHOCK_THRESHOLD;
+    const shockOn = APP.navConfig.SHOCK_THRESHOLD > 0;
+    $('triggerShockToggle').checked = shockOn;
+    $('triggerShock').value = shockOn ? APP.navConfig.SHOCK_THRESHOLD : 1;
     $('triggerShockPhrase').value = APP.navConfig.SHOCK_PHRASE;
-    $('triggerSpeedAlert').value = APP.navConfig.SPEED_ALERT_THRESHOLD === 0 ? 0 : APP.navConfig.SPEED_ALERT_THRESHOLD - 29;
+
+    const speedOn = APP.navConfig.SPEED_ALERT_THRESHOLD > 0;
+    $('triggerSpeedAlertToggle').checked = speedOn;
+    $('triggerSpeedAlert').value = speedOn ? APP.navConfig.SPEED_ALERT_THRESHOLD : 58;
     $('triggerSpeedAlertPhrase').value = APP.navConfig.SPEED_ALERT_PHRASE;
-    updateShockDisplay();
+    $('triggerShockVal').textContent = shockOn ? APP.navConfig.SHOCK_THRESHOLD + 'g' : 'Выкл';
     updateSpeedAlertDisplay();
     $('triggerSettingsModal').style.display = 'flex';
 }
 
 function updateShockDisplay() {
+    if (!$('triggerShockToggle').checked) {
+        $('triggerShockVal').textContent = 'Выкл';
+        return;
+    }
     const val = parseFloat($('triggerShock').value);
-    $('triggerShockVal').textContent = val === 0 ? 'Выкл' : val + 'g';
+    $('triggerShockVal').textContent = val + 'g';
 }
 
 function updateSpeedAlertDisplay() {
-    const raw = parseInt($('triggerSpeedAlert').value);
-    const val = raw === 0 ? 0 : raw + 29;
-    $('triggerSpeedAlertVal').textContent = val === 0 ? 'Выкл' : val + ' км/ч';
 }
 
 function triggerSettingsClose() {
@@ -442,17 +482,12 @@ function triggerSettingsClose() {
 }
 
 function triggerSettingsSave() {
-    const dist = parseInt($('triggerDist').value);
-    const az = parseInt($('triggerAz').value);
-    const speed = parseInt($('triggerSpeed').value);
-    const shock = parseFloat($('triggerShock').value);
+    const shockOn = $('triggerShockToggle').checked;
+    const shock = shockOn ? parseFloat($('triggerShock').value) : 0;
     const phrase = $('triggerShockPhrase').value.trim() || 'Сильный удар!';
-    const speedAlertRaw = parseInt($('triggerSpeedAlert').value);
-    const speedAlert = speedAlertRaw === 0 ? 0 : speedAlertRaw + 29;
+    const speedOn = $('triggerSpeedAlertToggle').checked;
+    const speedAlert = speedOn ? parseInt($('triggerSpeedAlert').value) || 58 : 0;
     const speedAlertPhrase = $('triggerSpeedAlertPhrase').value.trim() || 'Превышена максимальная скорость!';
-    APP.navConfig.TRIGGER_DIST = dist;
-    APP.navConfig.AZ_TOLERANCE = az;
-    APP.navConfig.SPEED_THRESHOLD = speed;
     const wasShockEnabled = APP.navConfig.SHOCK_THRESHOLD > 0;
     const nowShockEnabled = shock > 0;
     APP.navConfig.SHOCK_THRESHOLD = shock;
@@ -1137,43 +1172,13 @@ ymaps3.ready.then(async () => {
         $('tiltBtn').textContent = APP._is3D ? '3D' : '2D';
     }
 
-    let locatePressTimer = null;
     $('locateBtn').addEventListener('click', toggleAutoCenter);
-    $('telemetryPanel').addEventListener('pointerdown', () => {
-        locatePressTimer = setTimeout(() => {
-            locatePressTimer = null;
-            triggerSettingsOpen();
-        }, 1000);
-    });
-    $('telemetryPanel').addEventListener('pointerup', () => {
-        if (locatePressTimer) {
-            clearTimeout(locatePressTimer);
-            locatePressTimer = null;
-        }
-    });
-    $('telemetryPanel').addEventListener('pointerleave', () => {
-        if (locatePressTimer) {
-            clearTimeout(locatePressTimer);
-            locatePressTimer = null;
-        }
-    });
-    $('telemetryPanel').addEventListener('pointercancel', () => {
-        if (locatePressTimer) {
-            clearTimeout(locatePressTimer);
-            locatePressTimer = null;
-        }
-    });
+    $('telemetryPanel').addEventListener('click', triggerSettingsOpen);
 
-    $('triggerDist').addEventListener('input', function() {
-        $('triggerDistVal').textContent = this.value + ' м';
+    $('triggerShockToggle').addEventListener('change', function() {
+        if (!this.checked) $('triggerShockVal').textContent = 'Выкл';
+        else updateShockDisplay();
     });
-    $('triggerAz').addEventListener('input', function() {
-        $('triggerAzVal').textContent = '±' + this.value + '°';
-    });
-    $('triggerSpeed').addEventListener('input', function() {
-        $('triggerSpeedVal').textContent = this.value + ' км/ч';
-    });
-
     $('commentBlock').addEventListener('click', () => {
         $('commentBlock').classList.remove('visible'); clearInfoMarkers();
     });
@@ -1242,60 +1247,43 @@ ymaps3.ready.then(async () => {
 
 <div id="triggerSettingsModal" onclick="if(event.target===this) triggerSettingsClose()">
     <div class="modal-sheet modal-sheet-compact">
-        <h3 class="modal-title">Настройки</h3>
+        <h3 class="modal-title">Настройки оповещений</h3>
 
         <div class="ts-section">
-            <div class="ts-section-title">Навигация</div>
-
             <div class="trigger-setting-row">
                 <div class="trigger-setting-header">
-                    <span class="label">Дистанция</span>
-                    <span class="value" id="triggerDistVal">25 м</span>
-                </div>
-                <input type="range" id="triggerDist" min="1" max="25" value="25" step="1">
-            </div>
-
-            <div class="trigger-setting-row">
-                <div class="trigger-setting-header">
-                    <span class="label">Направление</span>
-                    <span class="value" id="triggerAzVal">±45°</span>
-                </div>
-                <input type="range" id="triggerAz" min="10" max="180" value="45" step="5">
-            </div>
-
-            <div class="trigger-setting-row">
-                <div class="trigger-setting-header">
-                    <span class="label">Мин. скорость</span>
-                    <span class="value" id="triggerSpeedVal">2 км/ч</span>
-                </div>
-                <input type="range" id="triggerSpeed" min="0" max="5" value="2" step="1">
-            </div>
-        </div>
-
-        <div class="ts-section">
-            <div class="ts-section-title">Детекция</div>
-
-            <div class="trigger-setting-row">
-                <div class="trigger-setting-header">
+                    <label class="toggle-switch">
+                        <input type="checkbox" class="toggle-input" id="triggerShockToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
                     <span class="label">Детекция ударов</span>
                     <span class="value" id="triggerShockVal">Выкл</span>
                 </div>
-                <input type="range" id="triggerShock" min="0" max="3" value="0" step="0.5" oninput="updateShockDisplay()">
-                <div class="ts-phrase-row">
-                    <span class="ts-phrase-label">Команда:</span>
-                    <input type="text" id="triggerShockPhrase" value="Сильный удар!">
+                <div id="triggerShockControls">
+                    <input type="range" id="triggerShock" min="0.5" max="3" value="1" step="0.5" oninput="updateShockDisplay()">
+                    <div class="ts-phrase-row">
+                        <span class="ts-phrase-label">Команда:</span>
+                        <input type="text" id="triggerShockPhrase" value="Сильный удар!">
+                    </div>
                 </div>
             </div>
 
             <div class="trigger-setting-row">
                 <div class="trigger-setting-header">
-                    <span class="label">Контроль скорости</span>
-                    <span class="value" id="triggerSpeedAlertVal">Выкл</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" class="toggle-input" id="triggerSpeedAlertToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="label">Максимальная скорость</span>
                 </div>
-                <input type="range" id="triggerSpeedAlert" min="0" max="31" value="0" step="1" oninput="updateSpeedAlertDisplay()">
-                <div class="ts-phrase-row">
-                    <span class="ts-phrase-label">Команда:</span>
-                    <input type="text" id="triggerSpeedAlertPhrase" value="Превышена максимальная скорость!">
+                <div id="triggerSpeedAlertControls">
+                    <div style="padding:4px 16px 6px;">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" id="triggerSpeedAlert" value="58" style="width:100%;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);color:#fff;font-size:16px;font-weight:600;outline:none;box-sizing:border-box;" oninput="updateSpeedAlertDisplay()">
+                    </div>
+                    <div class="ts-phrase-row">
+                        <span class="ts-phrase-label">Команда:</span>
+                        <input type="text" id="triggerSpeedAlertPhrase" value="Превышена максимальная скорость!">
+                    </div>
                 </div>
             </div>
         </div>

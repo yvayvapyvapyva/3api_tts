@@ -918,10 +918,9 @@ html, body {
 }
 
 #triggerSettingsModal .modal-sheet {
-    max-height: 80vh;
-    overflow-y: auto;
     max-width: 360px;
     margin: 0 16px;
+    height: auto;
 }
 
 .ts-section + .ts-section {
@@ -988,6 +987,7 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 14px;
     padding: 0 16px 6px 16px;
 }
 
@@ -995,6 +995,7 @@ html, body {
     font-size: 14px;
     font-weight: 600;
     color: #fff;
+    flex: 1;
 }
 
 .trigger-setting-row .value {
