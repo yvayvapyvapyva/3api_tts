@@ -167,7 +167,7 @@ const APP = {
     map: null, userMarker: null, lastPos: null, lastAz: 0, rawAz: 0, lastTilt: 0, autoCenter: false, currentSpeed: 0,
     navPoints: [], navCurrentIndex: 0, navPreviewIndex: -1,
     navAudio: new Audio(), _commentAudio: new Audio(),
-    navConfig: { TRIGGER_DIST: 25, AZ_TOLERANCE: 45, SPEED_THRESHOLD: 2, SHOCK_THRESHOLD: 0, SHOCK_PHRASE: 'Сильный удар!', SPEED_ALERT_THRESHOLD: 58, SPEED_ALERT_PHRASE: 'Превышена максимальная скорость!' },
+    navConfig: { TRIGGER_DIST: 25, AZ_TOLERANCE: 45, SPEED_THRESHOLD: 2, SHOCK_THRESHOLD: 1.5, SHOCK_PHRASE: 'Сильный удар!', SPEED_ALERT_THRESHOLD: 58, SPEED_ALERT_PHRASE: 'Превышена максимальная скорость!' },
     _isScheme: true, _schemeLayer: null, _featuresLayer: null, _buildings: null,
     _driveActive: false, _driveRaf: null, _driveMarker: null, _driveShowFrom: -1,
     _driveSpeed: 120,
@@ -1233,6 +1233,7 @@ ymaps3.ready.then(async () => {
 
     MenuModule.init(loadRouteFromJSON);
     $('loading').classList.add('hidden');
+    if (APP.navConfig.SHOCK_THRESHOLD > 0) startShockDetection();
 
     document.addEventListener('click', function activateAudio() {
         APP.navAudio.muted = true;
