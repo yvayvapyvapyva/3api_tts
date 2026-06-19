@@ -517,7 +517,6 @@ function startShockDetection() {
     if (APP._shockListenerActive) return;
     requestMotionPermission().then(granted => {
         if (!granted) {
-            showToast('Доступ к акселерометру не получен', 'error');
             APP.navConfig.SHOCK_THRESHOLD = 0;
             $('triggerShock').value = 0;
             updateShockDisplay();
@@ -1261,7 +1260,7 @@ ymaps3.ready.then(async () => {
                     <span class="value" id="triggerShockVal">Выкл</span>
                 </div>
                 <div id="triggerShockControls">
-                    <input type="range" id="triggerShock" min="0.5" max="3" value="1" step="0.5" oninput="updateShockDisplay()">
+                    <input type="range" id="triggerShock" min="0.5" max="3" value="1" step="0.25" oninput="updateShockDisplay()">
                     <div style="padding:4px 16px 6px;">
                         <input type="text" id="triggerShockPhrase" value="Сильный удар!" style="width:100%;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;box-sizing:border-box;border:none;">
                     </div>
