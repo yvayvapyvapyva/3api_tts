@@ -558,7 +558,7 @@ const SPEED_ALERT_DEBOUNCE = 5000;
 
 function checkSpeedAlert(speed) {
     const threshold = APP.navConfig.SPEED_ALERT_THRESHOLD;
-    if (threshold < 30) return;
+    if (threshold <= 0) return;
     if (isAudioPlaying()) return;
     if (speed > threshold) {
         const now = Date.now();
