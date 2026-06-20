@@ -218,6 +218,7 @@ $('commentToggleBtn').addEventListener('click', () => {
     APP._commentMuted = !APP._commentMuted;
     $('commentToggleBtn').classList.toggle('muted', APP._commentMuted);
     $('commentBlock').style.display = APP._commentMuted ? 'none' : '';
+    if (APP._commentMuted) APP._commentAudio.pause();
     showToast(APP._commentMuted ? '🔇 Озвучка и отображение комментариев отключены' : '🔊 Озвучка и отображение комментариев включены', 'info', 2000);
 });
 
@@ -847,6 +848,7 @@ function closePreview() {
 
 async function playCommand(text) {
     if (!text || !text.trim()) return;
+    APP._commentAudio.pause();
     APP.navAudio.pause();
     await playTTS(text);
 }
@@ -885,6 +887,7 @@ async function playTTS(text, voice_type = 'command') {
 async function playComment(text) {
     if (!text || !text.trim()) return;
     if (APP._commentMuted) return;
+    APP.navAudio.pause();
     APP._commentAudio.pause();
     const saved = APP.navAudio;
     APP.navAudio = APP._commentAudio;
