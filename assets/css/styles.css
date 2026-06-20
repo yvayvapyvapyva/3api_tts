@@ -453,13 +453,13 @@ html, body {
     letter-spacing: -0.2px;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
     background: var(--glass-bg);
-    border: 1px solid rgba(48, 209, 88, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     color: #fff;
     min-height: 52px;
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: background 0.15s;
-    box-shadow: 0 0 12px rgba(48, 209, 88, 0.2), 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
     touch-action: manipulation;
     display: flex;
     align-items: stretch;
@@ -469,12 +469,12 @@ html, body {
 }
 
 .hud-cmd:active {
-    background: rgba(48, 209, 88, 0.35);
+    background: rgba(80, 80, 80, 0.6);
 }
 
 #hudCmdNum {
     background: rgba(255, 255, 255, 0.15);
-    border-right: 0.5px solid rgba(48, 209, 88, 0.3);
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
     padding: 0 10px;
     height: auto;
     align-self: stretch;
@@ -515,10 +515,11 @@ html, body {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     margin-left: auto;
     padding: 0 10px;
-    border-left: 0.5px solid rgba(48, 209, 88, 0.3);
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
     display: flex;
     align-items: center;
     flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.15);
 }
 
 #hudCmdDist.in-range {
@@ -533,7 +534,7 @@ html, body {
     padding: 0 12px;
     height: 52px;
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(48, 209, 88, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     background: var(--glass-bg);
     color: #fff;
     font-size: 15px;
@@ -541,12 +542,12 @@ html, body {
     cursor: pointer;
     flex-shrink: 0;
     transition: background 0.15s;
-    box-shadow: 0 0 12px rgba(48, 209, 88, 0.2), 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
     touch-action: manipulation;
 }
 
 #selectBtn:active {
-    background: rgba(48, 209, 88, 0.35);
+    background: rgba(80, 80, 80, 0.6);
 }
 
 .nav-arrow-btn {
@@ -554,14 +555,14 @@ html, body {
     height: 52px;
     border-radius: var(--radius-sm);
     background: var(--glass-bg);
-    border: 1px solid rgba(48, 209, 88, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     flex-shrink: 0;
     transition: background 0.15s;
-    box-shadow: 0 0 12px rgba(48, 209, 88, 0.2), 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
     touch-action: manipulation;
 }
 
@@ -572,7 +573,7 @@ html, body {
 }
 
 .nav-arrow-btn:active {
-    background: rgba(48, 209, 88, 0.35);
+    background: rgba(80, 80, 80, 0.6);
 }
 
 .nav-arrow-btn:disabled {
