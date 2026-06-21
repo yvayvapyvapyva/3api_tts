@@ -448,8 +448,6 @@ ymaps.ready(async () => {
     });
     new Sortable($('pointsSortList'), { animation: 150, handle: '.sort-handle', ghostClass: 'sortable-ghost', onEnd: reorderPointsFromList, scroll: $('pointsSortList'), scrollSensitivity: 40, scrollSpeed: 15 });
 
-    localStorage.removeItem('gh_t_optimized');
-    
     handleInitialAuth();
 });
 
