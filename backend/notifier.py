@@ -3,6 +3,7 @@ import datetime
 import os
 import base64
 import html
+import threading
 from urllib.parse import unquote
 
 def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name='', ip=None, user_agent=None, lat=None, lon=None):
@@ -101,29 +102,24 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name=
             f"{extra_lines}"
         )
 
+    threading.Thread(target=_send_async, args=(token, chat_id, message, lat, lon), daemon=True).start()
+
+
+def _send_async(token, chat_id, message, lat, lon):
     try:
         requests.get(
             f"https://api.telegram.org/bot{token}/sendMessage",
-            params={
-                "chat_id": chat_id, 
-                "text": message,
-                "parse_mode": "HTML"
-            },
-            timeout=5 
+            params={"chat_id": chat_id, "text": message, "parse_mode": "HTML"},
+            timeout=5
         )
     except Exception:
         pass
-
     if lat and lon:
         try:
             requests.get(
                 f"https://api.telegram.org/bot{token}/sendLocation",
-                params={
-                    "chat_id": chat_id,
-                    "latitude": float(lat),
-                    "longitude": float(lon)
-                },
-                timeout=2
+                params={"chat_id": chat_id, "latitude": float(lat), "longitude": float(lon)},
+                timeout=5
             )
         except Exception:
             pass
