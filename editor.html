@@ -164,7 +164,6 @@ const TG_BOT_LINK = 'https://t.me/E_ia_bot?startapp=m=';
 let map, points = [], cur = null, isAdd = false, isDrawing = false, isAddingInfo = false, curRoute = null, activeListPoint = null, modalMode = 'list', tempNewPointData = null, userLocPlacemark = null, activePoint = null, settingsRouteFiles = [];
 let historyStack = [], historyIndex = -1, lastSavedSnapshot = "[]", toastTimer = null;
 let pendingDeletePoint = null;
-let pendingDeleteSingle = false;
 let _currentFolderPrefix = null;
 let _emptyFolders = [];
 let _expandedFolders = new Set();
@@ -297,16 +296,6 @@ function getNavIconSvg(col, txt, az, isEnd = false, isCurr = false, hasComm = fa
     
     return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
 }
-
-function getArrowEndSvg(col, az) {
-    const s = 30, c = s / 2;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}">
-        <g transform="rotate(${az},${c},${c})">
-            <polygon points="${c},3 ${c+6},${c+6} ${c},${c+1} ${c-6},${c+6}" fill="${col}" stroke="#000000" stroke-width="1" opacity="0.9"/>
-        </g>
-    </svg>`;
-    return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
-}
 const getUserLocSvg = () => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#007AFF" stroke="white" stroke-width="2.5"/><circle cx="8" cy="8" r="7.5" fill="none" stroke="#007AFF" stroke-width="1" opacity="0.3"/></svg>`);
 function calcAzimuth(p1, p2) {
     if (!p1 || !p2) return 0;
@@ -318,14 +307,6 @@ function calcAzimuth(p1, p2) {
 }
 const serializePoints = () => JSON.stringify(points.map(p => ({ id: p.id, color: p.color, pts: p.pts, cmd: p.cmd, comm: p.comm, info: p.info })));
 
-function formatJsonWithPts(data) {
-    const items = data.map(p => {
-        const ptsStr = JSON.stringify(p.pts);
-        const infoStr = p.info && p.info.length ? `,\n    "info": ${JSON.stringify(p.info)}` : '';
-        return `  {\n    "id": ${p.id},\n    "color": "${p.color}",\n    "pts": ${ptsStr},\n    "cmd": "${p.cmd.replace(/"/g, '\\"')}",\n    "comm": "${(p.comm || '').replace(/"/g, '\\"')}"${infoStr}\n  }`;
-    });
-    return '[\n' + items.join(',\n') + '\n]';
-}
 const clearRouteObjects = () => {
     points.forEach(p => { 
         map.geoObjects.remove(p.pm); 
@@ -496,12 +477,6 @@ const initGeolocation = () => {
         }, null, { enableHighAccuracy: true, maximumAge: 5000 });
     }
 };
-const getRouteFromUrl = () => {
-    const raw = (new URLSearchParams(window.location.search).get('route') || '').trim();
-    if (!raw) return null;
-    const normalized = raw.endsWith('.json') ? raw : `${raw}.json`;
-    return normalized;
-};
 const handleInitialAuth = async () => {
     
     $('welcomeScreen').style.display = 'none';
@@ -513,10 +488,6 @@ const handleInitialAuth = async () => {
     const routeCount = settingsRouteFiles.length;
     $('settingsTitle').textContent = `${getFormattedCreatorName()} - маршрутов:${routeCount}`;
 };
-
-function showAdminLogin() {
-    window.location.href = 'login.html';
-}
 
 const refreshFileList = async () => {
     try {
@@ -1356,9 +1327,8 @@ function recalculateIds() {
     syncActiveListCard();
 }
 
-function confirmDeletePoint(p, isSingle) {
+function confirmDeletePoint(p) {
     pendingDeletePoint = p;
-    pendingDeleteSingle = isSingle;
     setTimeout(() => toggleM('confirmDeletePointModal'), 100);
 }
 async function executeDeletePoint() {
@@ -1396,7 +1366,7 @@ function createPointCard(p, single = false) {
         if (e.target.closest('.btn-item-action') || e.target.closest('.color-indicator-btn') || e.target.closest('.cmd-input') || e.target.closest('.play-cmd-btn') || e.target.closest('.comm-input') || e.target.closest('.play-comm-btn')) return;
         setActivePoint(p, true);
     };
-    item.querySelector('.btn-del').onclick = () => { confirmDeletePoint(p, single); };
+    item.querySelector('.btn-del').onclick = () => { confirmDeletePoint(p); };
     item.querySelector('.btn-path').onclick = () => { toggleM('pointsOrderModal'); startEditPath(p); };
 
     const infoWrap = item.querySelector('.info-points-wrap');
@@ -1571,7 +1541,6 @@ window.openCreateRouteModal = openCreateRouteModal;
 window.openRouteSettings = openRouteSettings;
 window.saveRouteMeta = saveRouteMeta;
 window.shareRouteFromSettings = shareRouteFromSettings;
-window.deleteRouteFromSettings = executeDeleteRoute;
 window.confirmDeleteRoute = confirmDeleteRoute;
 window.confirmDeletePoint = confirmDeletePoint;
 window.executeDeletePoint = executeDeletePoint;
