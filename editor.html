@@ -115,8 +115,8 @@ const f6 = round6;
         Telegram.WebApp.expand();
         if (Telegram.WebApp.version && parseFloat(Telegram.WebApp.version) >= 7.0) {
             try { Telegram.WebApp.requestFullscreen?.(); } catch (e) {}
+            try { Telegram.WebApp.disableVerticalSwipes?.(); } catch (e) {}
         }
-        try { Telegram.WebApp.disableVerticalSwipes?.(); } catch (e) {}
         const user = Telegram.WebApp.initDataUnsafe?.user;
         if (user) {
             window.authPlatform = 'tg';
