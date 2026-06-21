@@ -270,10 +270,7 @@ function encodeUserInfo() {
             const userInfoStr = 'vk:' + [user.id, fullName, city].join(',');
             return btoa(encodeURIComponent(userInfoStr));
         }
-        if (window.authPlatform === 'user') {
-            const userInfoStr = 'user:' + window.authLogin;
-            return btoa(encodeURIComponent(userInfoStr));
-        }
+
     } catch (e) {}
     return null;
 }
@@ -1025,7 +1022,7 @@ function copyCreatorLink(platform) {
 const openInNavigator = () => {
     const routeKey = settingsRouteName || curRoute;
     if (!routeKey) return;
-    const userId = window.authLogin ;
+    const userId = window.authLogin;
     window.location.href = `navigator.html#m=${userId}-${routeKey}`;
 };
 const openSettingsModal = () => { refreshFileList(); toggleM('settingsModal'); };
