@@ -3,7 +3,6 @@ const MenuModule = {
     callback: null,
     isLoaded: false,
     currentRoute: null,
-    isInitialized: false,
     routesDescriptions: {}, // { "id-m": { name, description, id, m } }
     _isFetchingRoutes: false,
     _categoryTree: null,
@@ -17,13 +16,6 @@ const MenuModule = {
     // URL Яндекс-функции для загрузки маршрутов (общий бекенд)
     API_URL_V2: 'https://functions.yandexcloud.net/d4e6qbc1mm9j44h0na3n',
     
-    /**
-     * Получить правильный URL API в зависимости от версии
-     */
-    getApiUrl() {
-        return this.API_URL_V2;
-    },
-
     /**
      * Универсальное получение параметров URL
      * Поддерживает только формат: #m=id-название
@@ -184,7 +176,6 @@ const MenuModule = {
             } catch (e) {}
         }
 
-        this.isInitialized = true;
     },
 
     /**
@@ -219,7 +210,7 @@ const MenuModule = {
      * Запрос к Яндекс-функции за списком маршрутов
      */
     async _fetchFromAPI() {
-        let url = `${this.getApiUrl()}?action=list_routes`;
+        let url = `${this.API_URL_V2}?action=list_routes`;
         if (this._filterCreator) url += `&creator=${encodeURIComponent(this._filterCreator)}`;
         const response = await fetch(url);
 
@@ -276,7 +267,7 @@ const MenuModule = {
     async _fetchUserRoutes(userId) {
         if (!userId) return;
         try {
-            let url = this.getApiUrl();
+            let url = this.API_URL_V2;
             const params = ['action=list'];
 
             if (window.authPlatform === 'tg') {
@@ -754,7 +745,7 @@ const MenuModule = {
             
             this.hide();
             
-            let url = this.getApiUrl();
+            let url = this.API_URL_V2;
             const params = [];
             if (routeId) {
                 params.push(`id=${encodeURIComponent(routeId)}`);
