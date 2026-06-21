@@ -228,6 +228,9 @@ const $ = id => document.getElementById(id);
             }
         } catch (e) {}
     }
+    if (navigator.userAgent.includes('Android') && window.authPlatform === 'tg') {
+        document.documentElement.classList.add('android-app');
+    }
 })();
 
 let toastTimer = null;

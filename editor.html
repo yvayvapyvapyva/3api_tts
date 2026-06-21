@@ -149,6 +149,9 @@ const f6 = round6;
             }
         } catch (e) {}
     }
+    if (navigator.userAgent.includes('Android') && window.authPlatform === 'tg') {
+        document.documentElement.classList.add('android-app');
+    }
 })();
 // -------------------------
 
