@@ -520,6 +520,7 @@ html, body {
     align-items: center;
     flex-shrink: 0;
     background: rgba(255, 255, 255, 0.15);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 #hudCmdDist.in-range {
