@@ -270,6 +270,10 @@ function encodeUserInfo() {
             const userInfoStr = 'vk:' + [user.id, fullName, city].join(',');
             return btoa(encodeURIComponent(userInfoStr));
         }
+        if (window.authPlatform === 'user') {
+            const userInfoStr = 'user:' + window.authLogin;
+            return btoa(encodeURIComponent(userInfoStr));
+        }
     } catch (e) {}
     return null;
 }
