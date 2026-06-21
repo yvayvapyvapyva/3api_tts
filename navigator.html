@@ -1130,7 +1130,7 @@ async function precacheRouteAudio(data) {
     updateHud();
 }
 
-let _wakeLock = null, wakeLockInterval = null, wakeCanvas = null, wakeCanvasStream = null, _wakeAudioCtx = null;
+let _wakeLock = null, wakeLockInterval = null, wakeCanvas = null, wakeCanvasStream = null;
 const wakeVideo = document.getElementById('wakeLockVideo');
 
 async function requestWakeLock() {
@@ -1170,18 +1170,7 @@ function startCanvasWakeLock() {
             ctx.fillStyle = '#' + Math.floor(Math.random()*16777215).toString(16);
             ctx.fillRect(0, 0, 1, 1);
         }
-    }, 3000);
-    if (!_wakeAudioCtx && typeof AudioContext !== 'undefined') {
-        _wakeAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = _wakeAudioCtx.createOscillator();
-        const gain = _wakeAudioCtx.createGain();
-        gain.gain.value = 0;
-        osc.connect(gain); gain.connect(_wakeAudioCtx.destination);
-        osc.start();
-    }
-    if (_wakeAudioCtx && _wakeAudioCtx.state === 'suspended') {
-        _wakeAudioCtx.resume();
-    }
+    }, 15000);
 }
 
 function stopCanvasWakeLock() {
@@ -1192,10 +1181,6 @@ function stopCanvasWakeLock() {
     if (wakeVideo) {
         wakeVideo.pause();
         wakeVideo.srcObject = null;
-    }
-    if (_wakeAudioCtx) {
-        _wakeAudioCtx.close().catch(() => {});
-        _wakeAudioCtx = null;
     }
 }
 
