@@ -275,6 +275,11 @@ function encodeUserInfo() {
             return btoa(encodeURIComponent(userInfoStr));
         }
 
+        if (window.authPlatform === 'user') {
+            const userInfoStr = 'user:' + window.authLogin;
+            return btoa(encodeURIComponent(userInfoStr));
+        }
+
     } catch (e) {}
     return null;
 }
