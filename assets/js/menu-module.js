@@ -544,19 +544,10 @@ const MenuModule = {
 
             btn.addEventListener('click', e => {
                 e.stopPropagation();
-                this.selectRoute(routeKey);
+                const route = this.routesDescriptions[routeKey];
+                if (route) this.loadRouteByName(route.m, route.id);
             });
             container.appendChild(btn);
-        }
-    },
-
-    /**
-     * Выбрать маршрут
-     */
-    selectRoute(routeKey) {
-        const route = this.routesDescriptions[routeKey];
-        if (route) {
-            this.loadRouteByName(route.m, route.id);
         }
     },
 
