@@ -37,7 +37,7 @@
 <div id="listColorDropdown" class="color-dropdown"></div>
 
 <div id="pointsOrderModal" onclick="if(event.target===this) toggleM('pointsOrderModal')"><div class="modal-sheet" style="gap:0;"><div class="modal-header"><h3 id="orderModalTitle">Маршрут</h3><button class="close-circle" onclick="toggleM('pointsOrderModal')">✕</button></div><div id="pointsSortList" style="flex:1;overflow-y:auto;padding:14px;"></div><div class="modal-footer"><button id="saveInListBtn" class="btn-action" onclick="handleModalSave()"><span id="saveBtnText">Готово</span></button></div></div></div>
-<div id="settingsModal" onclick="if(event.target===this) toggleM('settingsModal')"><div class="modal-sheet"><div class="modal-header" style="padding:16px 20px 16px 10px;"><button class="settings-tool-btn settings-share-btn" onclick="toggleM('creatorShareModal')" title="Поделиться ссылкой на маршруты">🔗</button><span id="settingsTitle">Ваши маршруты</span><div style="display:flex;gap:6px;margin-left:auto;"><button class="close-circle" onclick="toggleM('settingsModal')">✕</button></div></div><div class="settings-body" id="routesList"></div><div class="modal-actions-sm"><button class="settings-tool-btn settings-tool-btn-green flex-1" onclick="openCreateRouteModal()" style="text-align:center;">Создать маршрут</button><button class="settings-tool-btn flex-1" onclick="window.createFolder()" style="text-align:center;background:rgba(0,122,255,0.25);border-color:rgba(0,122,255,0.4);">Создать папку</button></div></div></div>
+<div id="settingsModal" onclick="if(event.target===this) toggleM('settingsModal')"><div class="modal-sheet"><div class="modal-header" style="padding:16px 20px 16px 10px;"><button class="settings-tool-btn settings-share-btn" title="Поделиться ссылкой на маршруты">🔗</button><span id="settingsTitle">Ваши маршруты</span><div style="display:flex;gap:6px;margin-left:auto;"><button class="close-circle" onclick="toggleM('settingsModal')">✕</button></div></div><div class="settings-body" id="routesList"></div><div class="modal-actions-sm"><button class="settings-tool-btn settings-tool-btn-green flex-1" onclick="openCreateRouteModal()" style="text-align:center;">Создать маршрут</button><button class="settings-tool-btn flex-1" onclick="window.createFolder()" style="text-align:center;background:rgba(0,122,255,0.25);border-color:rgba(0,122,255,0.4);">Создать папку</button></div></div></div>
 <div id="createRouteModal" onclick="if(event.target===this) toggleM('createRouteModal')"><div class="modal-sheet modal-sheet-compact"><h3 class="modal-title">Новый маршрут</h3><div class="input-wrapper" style="padding:4px;border-radius:14px;"><input type="text" id="newRouteNameInput" placeholder="Название маршрута"></div><div class="modal-actions"><button class="btn-action flex-1" onclick="toggleM('createRouteModal')">Отмена</button><button class="btn-action btn-primary flex-1" onclick="handleCreateNew()">Создать</button></div></div></div>
 <div id="settingsRouteModal" onclick="if(event.target===this) toggleM('settingsRouteModal')"><div class="modal-sheet" style="gap:0;padding:0;"><div class="modal-header"><h3 id="settingsRouteTitle">Настройки маршрута</h3><button class="close-circle" onclick="toggleM('settingsRouteModal')">✕</button></div><div class="modal-body-scroll">
 <div class="field-label">Имя маршрута</div>
@@ -1552,6 +1552,37 @@ window.openInstruction = openInstruction;
 window.closeInstruction = closeInstruction;
 window.closeZnakiSelector = closeZnakiSelector;
 window.selectZnak = selectZnak;
+
+// Долгое нажатие на 🔗 → login.html (смена пользователя)
+const shareBtn = document.querySelector('.settings-share-btn');
+let longPressTimer = null;
+let wasLongPress = false;
+
+shareBtn.addEventListener('pointerdown', () => {
+    wasLongPress = false;
+    longPressTimer = setTimeout(() => {
+        wasLongPress = true;
+        longPressTimer = null;
+        window.location.href = 'login.html';
+    }, 1000);
+});
+
+shareBtn.addEventListener('pointerup', () => {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+    if (!wasLongPress) {
+        toggleM('creatorShareModal');
+    }
+});
+
+shareBtn.addEventListener('pointerleave', () => {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+});
 </script>
 </body>
 </html>
