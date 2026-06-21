@@ -58,9 +58,11 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name=
             if platform == 'vk':
                 platform_icon = ' VK'
                 third_part = f", Город: {third}" if third else ''
+                user_info_text = f"ID: {uid}, Имя: {user_name}{third_part}"
             elif platform == 'tg':
                 platform_icon = ' TG'
                 third_part = f", @{third}" if third else ''
+                user_info_text = f"ID: {uid}, Имя: {user_name}{third_part}"
             elif platform == 'user':
                 platform_icon = ' 👤'
                 user_info_text = f"Логин: {uid}"
