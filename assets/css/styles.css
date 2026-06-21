@@ -593,7 +593,7 @@ html, body {
    ============================================ */
 #shockBar {
     position: fixed;
-    top: calc(8px + env(safe-area-inset-top));
+    top: calc(6px + env(safe-area-inset-top));
     left: 0;
     right: 0;
     z-index: 9002;
