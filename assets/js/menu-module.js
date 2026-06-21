@@ -70,10 +70,7 @@ const MenuModule = {
             const name = trimmed.substring(dashIndex + 1).trim();
             return { id, name };
         }
-        if (/^\d+$/.test(trimmed)) {
-            return { id: trimmed, name: '' };
-        }
-        return { id: '', name: trimmed };
+        return { id: trimmed, name: '' };
     },
 
     // Инициализация
