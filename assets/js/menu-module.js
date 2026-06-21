@@ -90,7 +90,7 @@ const MenuModule = {
                 if (hash) return new URLSearchParams(hash).get('m');
                 return '';
             })() || '';
-        if (urlM && /^\d+$/.test(urlM.trim())) {
+        if (urlM && !urlM.includes('-')) {
             this._filterCreator = urlM.trim();
         } else {
             this._filterCreator = new URLSearchParams(window.location.search).get('creator')
@@ -108,7 +108,7 @@ const MenuModule = {
                 if (startParam) {
                     if (startParam.startsWith('m=')) {
                         const val = startParam.substring(2);
-                        if (/^\d+$/.test(val)) this._filterCreator = val;
+                        if (val && !val.includes('-')) this._filterCreator = val;
                     } else if (startParam.startsWith('creator=')) {
                         this._filterCreator = startParam.substring(8);
                     }

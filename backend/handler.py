@@ -362,6 +362,8 @@ def handler(event, context):
                 return create_response(400, {'error': 'login_min_2_password_min_3'})
             if not any(c.isalpha() for c in login):
                 return create_response(400, {'error': 'login_must_contain_letter'})
+            if '-' in login:
+                return create_response(400, {'error': 'login_no_hyphen'})
 
             # Проверяем, не занят ли логин
             existing = get_pool().retry_operation_sync(execute_get_user, login_param=login)
