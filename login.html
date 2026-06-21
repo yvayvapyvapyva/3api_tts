@@ -88,6 +88,7 @@
 <script>
 const API_URL = 'https://functions.yandexcloud.net/d4e6qbc1mm9j44h0na3n';
 const AUTH_KEY = '3api_auth';
+const REDIRECT = new URLSearchParams(window.location.search).get('redirect') || 'navigator.html';
 
 function saveAuth(platform, login, password, name) {
     localStorage.setItem(AUTH_KEY, JSON.stringify({ platform, login, password, name }));
@@ -103,7 +104,7 @@ async function tryAutoLogin() {
         if (user) {
             const name = [user.first_name, user.last_name].filter(Boolean).join(' ');
             saveAuth('tg', String(user.id), '', name);
-            window.location.href = 'navigator.html';
+            window.location.href = REDIRECT;
             return true;
         }
     }
@@ -118,7 +119,7 @@ async function tryAutoLogin() {
             if (info?.id) {
                 const name = [info.first_name, info.last_name].filter(Boolean).join(' ');
                 saveAuth('vk', String(info.id), '', name);
-                window.location.href = 'navigator.html';
+                window.location.href = REDIRECT;
                 return true;
             }
         } catch (e) {}
@@ -196,7 +197,7 @@ document.getElementById('authActionBtn').addEventListener('click', async () => {
             successEl.style.display = 'block';
         } else {
             saveAuth('user', login, password, name);
-            window.location.href = 'navigator.html';
+            window.location.href = REDIRECT;
             return;
         }
     } catch (e) {

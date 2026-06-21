@@ -245,7 +245,11 @@ if (speedEl) {
     speedEl.addEventListener('pointerdown', () => {
         _editorHoldTimer = setTimeout(() => {
             _editorHoldTimer = null;
-            window.location.href = 'editor.html';
+            if (window.authPlatform) {
+                window.location.href = 'editor.html';
+            } else {
+                window.location.href = 'login.html?redirect=editor.html';
+            }
         }, 1000);
     });
     speedEl.addEventListener('pointerup', () => {
