@@ -1042,8 +1042,91 @@ html, body {
     font-size: 18px;
     font-weight: 700;
 }
+.modal-header {
+    flex-shrink: 0;
+}
 
-.close-circle {
+.modal-body-scroll {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+    padding: 20px;
+}
+.modal-footer {
+    padding: 16px 20px;
+    border-top: 0.5px solid rgba(255,255,255,0.08);
+    flex-shrink: 0;
+}
+.modal-actions {
+    display: flex;
+    gap: 12px;
+}
+.modal-actions-sm {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 0 0 8px;
+}
+.modal-desc-text {
+    margin: 0;
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+    text-align: center;
+    line-height: 1.4;
+}
+.field-label {
+    font-size: 12px;
+    color: #8b8f99;
+    margin-bottom: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.btn-danger {
+    background: rgba(255,80,80,0.8);
+}
+.btn-primary {
+    background: linear-gradient(180deg, rgba(52,199,89,0.9), rgba(40,160,70,0.85));
+}
+#routesList {
+    padding: 4px 4px 8px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 6px;
+}
+#newRouteNameInput {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    font-size: 17px;
+    outline: none;
+    background: transparent;
+    color: #f5f7fa;
+    font-family: inherit;
+}
+.settings-share-btn {
+    width: auto;
+    align-self: stretch;
+    aspect-ratio: 1;
+    padding: 0;
+    font-size: 16px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,122,255,0.2);
+    border-color: rgba(0,122,255,0.3);
+}
+#settingsTitle {
+    font-size: 18px;
+    font-weight: 700;
+    margin-left: 4px;
+}
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -1828,6 +1911,10 @@ input, textarea, select {
 .settings-tool-btn-green {
     background: linear-gradient(180deg, rgba(52, 199, 89, 0.42), rgba(30, 144, 63, 0.36));
     border-color: rgba(103, 255, 153, 0.45);
+}
+
+.flex-1 {
+    flex: 1;
 }
 
 .modal-sheet-compact {
