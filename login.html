@@ -12,13 +12,16 @@
         body {
             background: rgba(10,11,15,0.95);
             display: flex; align-items: center; justify-content: center;
-            min-height: 100vh; margin: 0; padding: 20px;
+            min-height: 100vh; margin: 0; padding: clamp(12px, 3vw, 20px);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            box-sizing: border-box;
         }
         .auth-card {
             background: rgba(25,25,30,0.85); border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 20px; padding: 32px 28px; max-width: 340px; width: 100%;
+            border-radius: 20px; padding: clamp(24px, 6vw, 32px) clamp(16px, 5vw, 28px);
+            max-width: 340px; width: 100%;
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            box-sizing: border-box;
         }
         .auth-title { font-size: 24px; font-weight: 800; text-align: center; color: #fff; margin-bottom: 24px; }
         .auth-tabs { display: flex; margin-bottom: 20px; background: rgba(255,255,255,0.06); border-radius: 12px; padding: 3px; }
