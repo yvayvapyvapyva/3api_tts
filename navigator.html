@@ -191,7 +191,9 @@ const $ = id => document.getElementById(id);
     if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
-        try { Telegram.WebApp.requestFullscreen?.(); } catch (e) {}
+        if (Telegram.WebApp.version && parseFloat(Telegram.WebApp.version) >= 7.0) {
+            try { Telegram.WebApp.requestFullscreen?.(); } catch (e) {}
+        }
         try { Telegram.WebApp.disableVerticalSwipes?.(); } catch (e) {}
         const user = Telegram.WebApp.initDataUnsafe?.user;
         if (user) {
