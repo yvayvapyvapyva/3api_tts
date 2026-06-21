@@ -62,11 +62,10 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name=
                 third_part = f", @{third}" if third else ''
             elif platform == 'user':
                 platform_icon = ' 👤'
-                third_part = ''
+                user_info_text = f"Логин: {uid}"
             else:
                 third_part = f", {third}" if third else ''
-            
-            user_info_text = f"ID: {uid}, Имя: {user_name}{third_part}"
+                user_info_text = f"ID: {uid}, Имя: {user_name}{third_part}"
         except Exception as e:
             user_info_text = "ошибка декодирования"
 

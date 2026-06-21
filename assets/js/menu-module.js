@@ -806,7 +806,7 @@ const MenuModule = {
 
             if (window.authPlatform === 'user') {
                 try {
-                    const userInfoStr = 'user:' + [window.authLogin, window.authName || window.authLogin].join(',');
+                    const userInfoStr = 'user:' + window.authLogin;
                     const userInfoBase64 = btoa(encodeURIComponent(userInfoStr));
                     params.push(`i=${userInfoBase64}`);
                 } catch (e) {
