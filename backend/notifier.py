@@ -101,9 +101,7 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name=
             f"{extra_lines}"
         )
 
-    t = threading.Thread(target=_send_async, args=(token, chat_id, message, lat, lon))
-    t.start()
-    t.join(timeout=5)
+    threading.Thread(target=_send_async, args=(token, chat_id, message, lat, lon)).start()
 
 
 def _send_async(token, chat_id, message, lat, lon):
