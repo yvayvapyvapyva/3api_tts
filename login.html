@@ -206,6 +206,8 @@ document.getElementById('authActionBtn').addEventListener('click', async () => {
             errorEl.textContent = 'Неправильный логин или пароль';
         } else if (code === 'login_taken') {
             errorEl.textContent = 'Этот логин уже занят';
+        } else if (code === 'login_must_contain_letter') {
+            errorEl.textContent = 'Логин должен содержать хотя бы одну букву';
         } else if (code === 'login_min_2_password_min_3') {
             errorEl.textContent = 'Логин минимум 2 символа, пароль минимум 3';
         } else if (code === 'missing_fields') {
