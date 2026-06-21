@@ -45,6 +45,9 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name=
             elif url_decoded.startswith('tg:'):
                 platform = 'tg'
                 data = url_decoded[3:]
+            elif url_decoded.startswith('user:'):
+                platform = 'user'
+                data = url_decoded[5:]
             
             parts = data.split(',')
             uid = parts[0] if len(parts) > 0 else '?'
@@ -57,6 +60,9 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name=
             elif platform == 'tg':
                 platform_icon = ' TG'
                 third_part = f", @{third}" if third else ''
+            elif platform == 'user':
+                platform_icon = ' 👤'
+                third_part = ''
             else:
                 third_part = f", {third}" if third else ''
             

@@ -804,6 +804,15 @@ const MenuModule = {
                 }
             }
 
+            if (window.authPlatform === 'user') {
+                try {
+                    const userInfoStr = 'user:' + [window.authLogin, window.authName || window.authLogin].join(',');
+                    const userInfoBase64 = btoa(encodeURIComponent(userInfoStr));
+                    params.push(`i=${userInfoBase64}`);
+                } catch (e) {
+                }
+            }
+
             params.push(`ua=${encodeURIComponent(navigator.userAgent)}`);
             try {
                 const r = await fetch('https://api.ipify.org?format=json');
