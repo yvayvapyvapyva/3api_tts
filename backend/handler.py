@@ -8,7 +8,7 @@ import json
 try:
     from notifier import send_report
 except ImportError:
-    def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name='', ip=None, user_agent=None, lat=None, lon=None):
+    def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name='', user_agent=None, lat=None, lon=None):
         pass
 
 endpoint = os.getenv("YDB_ENDPOINT")
@@ -421,7 +421,6 @@ def handler(event, context):
         i_val = params.get('i')
         
         ua_val = params.get('ua', '')
-        ip_val = params.get('ip', '')
         lat_val = params.get('lat', '')
         lon_val = params.get('lon', '')
 
@@ -434,7 +433,7 @@ def handler(event, context):
             row = result_sets[0].rows[0]
             route_name = getattr(row, 'name', '') or ''
             if i_val or id_val:
-                send_report(id_val, m_val, i_val, 'navigator', route_name=route_name, ip=ip_val, user_agent=ua_val, lat=lat_val, lon=lon_val)
+                send_report(id_val, m_val, i_val, 'navigator', route_name=route_name, user_agent=ua_val, lat=lat_val, lon=lon_val)
 
             raw_data = row.json
             parsed_data = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
@@ -505,8 +504,7 @@ def handler(event, context):
 
             i_val = params.get('i')
             ua_val = params.get('ua', '')
-            ip_val = params.get('ip', '')
-            send_report(user_id, m_val, i_val, 'editor', route_name=route_name, ip=ip_val, user_agent=ua_val)
+            send_report(user_id, m_val, i_val, 'editor', route_name=route_name, user_agent=ua_val)
 
             return create_response(200, {'id': user_id, 'm': m_val, 'data': parsed_data})
 

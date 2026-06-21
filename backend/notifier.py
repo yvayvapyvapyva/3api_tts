@@ -6,7 +6,7 @@ import html
 import threading
 from urllib.parse import unquote
 
-def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name='', ip=None, user_agent=None, lat=None, lon=None):
+def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name='', user_agent=None, lat=None, lon=None):
     """
     Отправка отчета в Telegram
     
@@ -16,7 +16,6 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name=
         i_val: Опционально - информация о пользователе (закодированная строка: id,имя_фамилия,город)
         report_type: 'navigator' или 'editor'
         route_name: Отображаемое имя маршрута
-        ip: IP-адрес пользователя
         user_agent: User-Agent браузера
         lat: Широта (опционально)
         lon: Долгота (опционально)
@@ -79,8 +78,6 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name=
     route_line_nav = f'🆔 Маршрут: {user_id_esc} — <a href="{tg_link}">{display}</a>'
 
     extra_lines = ""
-    if ip:
-        extra_lines += f"\n🌐 IP: <code>{html.escape(ip)}</code>"
     if user_agent:
         ua_short = user_agent[:120] + "..." if len(user_agent) > 120 else user_agent
         extra_lines += f"\n📱 <code>{html.escape(ua_short)}</code>"
@@ -104,7 +101,9 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name=
             f"{extra_lines}"
         )
 
-    threading.Thread(target=_send_async, args=(token, chat_id, message, lat, lon), daemon=True).start()
+    t = threading.Thread(target=_send_async, args=(token, chat_id, message, lat, lon))
+    t.start()
+    t.join(timeout=5)
 
 
 def _send_async(token, chat_id, message, lat, lon):
