@@ -255,29 +255,24 @@ const MenuModule = {
     },
 
     _detectUserId() {
-        if (window.tgUser?.id) return String(window.tgUser.id);
-        if (window.vkUser?.id) return String(window.vkUser.id);
+        if (window.authLogin) return window.authLogin;
         return null;
     },
 
     _getUserDisplayName() {
-        if (window.tgUser) {
-            return [window.tgUser.first_name, window.tgUser.last_name].filter(Boolean).join(' ');
-        }
-        if (window.vkUser) {
-            return [window.vkUser.first_name, window.vkUser.last_name].filter(Boolean).join(' ');
-        }
+        if (window.authName) return window.authName;
+        if (window.authLogin) return window.authLogin;
         return '';
     },
 
     _getFormattedDisplayName() {
         const name = this._getUserDisplayName() || this._detectUserId() || '';
-        if (window.tgUser) {
-            const uname = window.tgUser.username || '';
+        if (window.authPlatform === 'tg') {
+            const uname = window.tgUser?.username || '';
             return uname ? `${name} (tg: @${uname})` : `${name} (tg)`;
         }
-        if (window.vkUser) {
-            return `${name} (vk: id${window.vkUser.id})`;
+        if (window.authPlatform === 'vk') {
+            return `${name} (vk: id${window.authLogin})`;
         }
         return name;
     },
@@ -285,7 +280,18 @@ const MenuModule = {
     async _fetchUserRoutes(userId) {
         if (!userId) return;
         try {
-            const url = `${this.getApiUrl()}?action=list&id=${encodeURIComponent(userId)}`;
+            let url = this.getApiUrl();
+            const params = ['action=list'];
+
+            if (window.authPlatform === 'tg') {
+                params.push(`p=tg&id=${encodeURIComponent(userId)}&tg_init_data=${encodeURIComponent(window.tgInitData || '')}`);
+            } else if (window.authPlatform === 'user') {
+                params.push(`p=user&login=${encodeURIComponent(window.authLogin)}&password=${encodeURIComponent(window.authPassword)}`);
+            } else {
+                params.push(`p=vk&id=${encodeURIComponent(userId)}`);
+            }
+
+            url += '?' + params.join('&');
             const resp = await fetch(url);
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
             const data = await resp.json();
@@ -761,14 +767,14 @@ const MenuModule = {
                 params.push(`m=${encodeURIComponent(routeName)}`);
             }
 
-            if (window.vkUser) {
+            if (window.authPlatform === 'vk' && window.vkUser) {
                 const user = window.vkUser;
                 const city = user.city?.title || 'не указан';
                 const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
                 const userInfoStr = 'vk:' + [user.id, fullName, city].join(',');
                 const userInfoBase64 = btoa(encodeURIComponent(userInfoStr));
                 params.push(`i=${userInfoBase64}`);
-            } else if (typeof vkBridge !== 'undefined') {
+            } else if (typeof vkBridge !== 'undefined' && !window.authPlatform) {
                 try {
                     const userInfo = await Promise.race([
                         vkBridge.send('VKWebAppGetUserInfo'),
@@ -787,7 +793,7 @@ const MenuModule = {
                 }
             }
 
-            if (window.tgUser) {
+            if (window.authPlatform === 'tg' && window.tgUser) {
                 try {
                     const user = window.tgUser;
                     const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');

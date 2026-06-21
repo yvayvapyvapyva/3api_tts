@@ -246,6 +246,56 @@ def execute_get_route_meta(session, id_param, m_param):
     )
 
 
+# ---- Users (login/password auth) ----
+
+def ensure_users_table(session):
+    query = """
+        CREATE TABLE IF NOT EXISTS users (
+            login Utf8,
+            password Utf8,
+            creator_name Utf8,
+            created_at Timestamp,
+            PRIMARY KEY (login)
+        );
+    """
+    session.execute_scheme(query)
+
+
+def execute_get_user(session, login_param):
+    query = """
+        DECLARE $login AS Utf8;
+        SELECT login, password, creator_name FROM users WHERE login = $login;
+    """
+    prepared_query = session.prepare(query)
+    return session.transaction().execute(
+        prepared_query,
+        {'$login': str(login_param)},
+        commit_tx=True
+    )
+
+
+def execute_create_user(session, login_param, password_param, creator_name_param):
+    query = """
+        DECLARE $login AS Utf8;
+        DECLARE $password AS Utf8;
+        DECLARE $creator_name AS Utf8;
+        DECLARE $created_at AS Timestamp;
+        UPSERT INTO users (login, password, creator_name, created_at)
+        VALUES ($login, $password, $creator_name, $created_at);
+    """
+    prepared_query = session.prepare(query)
+    return session.transaction().execute(
+        prepared_query,
+        {
+            '$login': str(login_param),
+            '$password': str(password_param),
+            '$creator_name': str(creator_name_param),
+            '$created_at': int(__import__('time').time() * 1_000_000)
+        },
+        commit_tx=True
+    )
+
+
 def create_response(status_code, body, is_public=False):
     headers = {
         'Content-Type': 'application/json',
@@ -271,6 +321,12 @@ def handler(event, context):
     if method == 'OPTIONS':
         return create_response(200, {'status': 'ok'}, is_public=True)
 
+    # Обеспечиваем существование таблицы users
+    try:
+        get_pool().retry_operation_sync(ensure_users_table)
+    except:
+        pass
+
     action = params.get('action', 'get')
     m_val = params.get('m')
     id_val = params.get('id')
@@ -292,6 +348,50 @@ def handler(event, context):
             return create_response(200, routes, is_public=True)
         except Exception as e:
             return create_response(500, {'error': 'internal_error', 'message': str(e)}, is_public=True)
+
+    # Регистрация пользователя
+    if action == 'register':
+        try:
+            login = params.get('login', '').strip()
+            password = params.get('password', '')
+            creator_name = params.get('creator_name', login)
+
+            if not login or not password:
+                return create_response(400, {'error': 'missing_fields'})
+            if len(login) < 2 or len(password) < 3:
+                return create_response(400, {'error': 'login_min_2_password_min_3'})
+
+            # Проверяем, не занят ли логин
+            existing = get_pool().retry_operation_sync(execute_get_user, login_param=login)
+            if existing[0].rows:
+                return create_response(409, {'error': 'login_taken'})
+
+            get_pool().retry_operation_sync(execute_create_user, login_param=login, password_param=password, creator_name_param=creator_name)
+            return create_response(200, {'status': 'registered'})
+        except Exception as e:
+            return create_response(500, {'error': 'register_failed', 'details': str(e)})
+
+    # Логин пользователя
+    if action == 'login':
+        try:
+            login = params.get('login', '').strip()
+            password = params.get('password', '')
+
+            if not login or not password:
+                return create_response(400, {'error': 'missing_fields'})
+
+            result = get_pool().retry_operation_sync(execute_get_user, login_param=login)
+            if not result[0].rows:
+                return create_response(401, {'error': 'invalid_credentials'})
+
+            row = result[0].rows[0]
+            if row.password != password:
+                return create_response(401, {'error': 'invalid_credentials'})
+
+            creator_name = getattr(row, 'creator_name', '') or login
+            return create_response(200, {'status': 'ok', 'login': login, 'name': creator_name})
+        except Exception as e:
+            return create_response(500, {'error': 'login_failed', 'details': str(e)})
 
     # Получение маршрута без подписи (для навигатора)
     # Но с отправкой отчета - i_val декодируется для получения информации о пользователе
@@ -348,6 +448,18 @@ def handler(event, context):
         if not ADMIN_TOKEN or token != ADMIN_TOKEN:
             return create_response(401, {'error': 'invalid_admin_token'})
         verified_user_id = params.get('id')
+    elif platform == 'user':
+        login = params.get('login', '').strip()
+        password = params.get('password', '')
+        if not login or not password:
+            return create_response(401, {'error': 'missing_credentials'})
+        try:
+            result = get_pool().retry_operation_sync(execute_get_user, login_param=login)
+            if not result[0].rows or result[0].rows[0].password != password:
+                return create_response(401, {'error': 'invalid_credentials'})
+            verified_user_id = login
+        except Exception as e:
+            return create_response(500, {'error': 'auth_error', 'details': str(e)})
     else:
         verified_user_id = params.get('id')
 

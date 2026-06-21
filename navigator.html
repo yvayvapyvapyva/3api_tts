@@ -14,8 +14,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@yandex/ymaps3-default-ui-theme@latest/dist/esm/index.css">
-    <script src="assets/js/vk-user.js"></script>
-    <script src="assets/js/tg-user.js"></script>
     <script src="assets/js/menu-module.js"></script>
 <style>
 .toggle-switch {
@@ -190,8 +188,47 @@ const APP = {
 
 const $ = id => document.getElementById(id);
 
-if (typeof vkBridge !== 'undefined') VK.init();
-TG.init();
+// Auth detection
+(function() {
+    if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+        try { Telegram.WebApp.requestFullscreen?.(); } catch (e) {}
+        try { Telegram.WebApp.disableVerticalSwipes?.(); } catch (e) {}
+        const user = Telegram.WebApp.initDataUnsafe?.user;
+        if (user) {
+            window.authPlatform = 'tg';
+            window.authLogin = String(user.id);
+            window.authPassword = '';
+            window.authName = [user.first_name, user.last_name].filter(Boolean).join(' ');
+            window.tgUser = user;
+            window.tgInitData = Telegram.WebApp.initData;
+        }
+    }
+    if (typeof vkBridge !== 'undefined') {
+        vkBridge.send('VKWebAppInit');
+        vkBridge.send('VKWebAppGetUserInfo').then(data => {
+            if (data?.id) {
+                window.authPlatform = 'vk';
+                window.authLogin = String(data.id);
+                window.authPassword = '';
+                window.authName = [data.first_name, data.last_name].filter(Boolean).join(' ');
+                window.vkUser = data;
+            }
+        });
+    }
+    if (!window.authPlatform) {
+        try {
+            const stored = JSON.parse(localStorage.getItem('3api_auth') || '{}');
+            if (stored.platform && stored.login) {
+                window.authPlatform = stored.platform;
+                window.authLogin = stored.login;
+                window.authPassword = stored.password || '';
+                window.authName = stored.name || stored.login;
+            }
+        } catch (e) {}
+    }
+})();
 
 let toastTimer = null;
 function showToast(text, type = 'info', duration = 2000) {

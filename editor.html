@@ -9,8 +9,6 @@
     <script src="https://api-maps.yandex.ru/2.1/?apikey=YANDEX_API_KEY&lang=ru_RU&suppressMapOpenBlock=true"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="assets/js/config.js"></script>
-    <script src="assets/js/vk-user.js"></script>
-    <script src="assets/js/tg-user.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -110,15 +108,53 @@ const { byId, round6 } = window.AppShared;
 const $ = byId;
 const f6 = round6;
 
-if (typeof vkBridge !== 'undefined') VK.init();
-TG.init();
+// ---- Auth detection ----
+(function() {
+    if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+        try { Telegram.WebApp.requestFullscreen?.(); } catch (e) {}
+        try { Telegram.WebApp.disableVerticalSwipes?.(); } catch (e) {}
+        const user = Telegram.WebApp.initDataUnsafe?.user;
+        if (user) {
+            window.authPlatform = 'tg';
+            window.authLogin = String(user.id);
+            window.authPassword = '';
+            window.authName = [user.first_name, user.last_name].filter(Boolean).join(' ');
+            window.tgUser = user;
+            window.tgInitData = Telegram.WebApp.initData;
+        }
+    }
+    if (typeof vkBridge !== 'undefined') {
+        vkBridge.send('VKWebAppInit');
+        vkBridge.send('VKWebAppGetUserInfo').then(data => {
+            if (data?.id && !window.authPlatform) {
+                window.authPlatform = 'vk';
+                window.authLogin = String(data.id);
+                window.authPassword = '';
+                window.authName = [data.first_name, data.last_name].filter(Boolean).join(' ');
+                window.vkUser = data;
+                if (window._onVkReady) window._onVkReady();
+            }
+        });
+    }
+    if (!window.authPlatform) {
+        try {
+            const stored = JSON.parse(localStorage.getItem('3api_auth') || '{}');
+            if (stored.platform && stored.login) {
+                window.authPlatform = stored.platform;
+                window.authLogin = stored.login;
+                window.authPassword = stored.password || '';
+                window.authName = stored.name || stored.login;
+            }
+        } catch (e) {}
+    }
+})();
+// -------------------------
 
 const YC_FUNCTION_URL = 'https://functions.yandexcloud.net/d4e6qbc1mm9j44h0na3n';
 const TTS_API_URL = 'https://functions.yandexcloud.net/d4erngid6s4rf5oinnp1';
 const TG_BOT_LINK = 'https://t.me/E_ia_bot?startapp=m=';
-
-const TG_ACTIVE = typeof Telegram !== 'undefined' && Telegram.WebApp && !!Telegram.WebApp.initData;
-let ADMIN_TOKEN = '';
 
 let map, points = [], cur = null, isAdd = false, isDrawing = false, isAddingInfo = false, curRoute = null, activeListPoint = null, modalMode = 'list', tempNewPointData = null, userLocPlacemark = null, activePoint = null, settingsRouteFiles = [];
 let historyStack = [], historyIndex = -1, lastSavedSnapshot = "[]", toastTimer = null;
@@ -129,11 +165,6 @@ let _emptyFolders = [];
 let _expandedFolders = new Set();
 let pendingInfoImage = null;
 let pendingInfoPlacemark = null;
-
-
-window.USER_ID = TG_ACTIVE ? TG.getId() : VK.getId();
-window.USER_NAME = TG_ACTIVE ? TG.getName() : VK.getName();
-window.USER_UNAME = '';
 
 function openInstruction() {
     const modal = $('instructionModal');
@@ -158,12 +189,15 @@ function closeInstruction() {
 }
 
 function getFormattedCreatorName() {
-    const name = window.USER_NAME || window.USER_ID;
-    if (TG_ACTIVE) {
+    const name = window.authName || window.authLogin || '';
+    if (window.authPlatform === 'tg') {
         const uname = window.tgUser?.username || '';
         return uname ? `${name} (tg: @${uname})` : `${name} (tg)`;
     }
-    return `${name} (vk: id${window.USER_ID})`;
+    if (window.authPlatform === 'vk') {
+        return `${name} (vk: id${window.authLogin})`;
+    }
+    return name;
 }
 
 const showToast = (text, type = 'info', duration = 2200) => {
@@ -187,16 +221,20 @@ document.addEventListener('pointerdown', (e) => {
 async function callYcFunction(action, params = {}, bodyData = null) {
     const url = new URL(YC_FUNCTION_URL);
     url.searchParams.set('action', action);
-    if (ADMIN_TOKEN) {
-        url.searchParams.set('p', 'admin');
-        url.searchParams.set('admin_token', ADMIN_TOKEN);
-    } else {
-        url.searchParams.set('p', TG_ACTIVE ? 'tg' : 'vk');
+
+    if (window.authPlatform === 'tg') {
+        url.searchParams.set('p', 'tg');
+        url.searchParams.set('id', window.authLogin);
+        url.searchParams.set('tg_init_data', window.tgInitData || '');
+    } else if (window.authPlatform === 'vk') {
+        url.searchParams.set('p', 'vk');
+        url.searchParams.set('id', window.authLogin);
+    } else if (window.authPlatform === 'user') {
+        url.searchParams.set('p', 'user');
+        url.searchParams.set('login', window.authLogin);
+        url.searchParams.set('password', window.authPassword);
     }
-    url.searchParams.set('id', window.USER_ID);
-    if (TG_ACTIVE) {
-        url.searchParams.set('tg_init_data', Telegram.WebApp.initData);
-    }
+
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
     
     const options = {
@@ -219,13 +257,13 @@ async function callYcFunction(action, params = {}, bodyData = null) {
 
 function encodeUserInfo() {
     try {
-        if (TG_ACTIVE && window.tgUser) {
+        if (window.authPlatform === 'tg' && window.tgUser) {
             const user = window.tgUser;
             const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
             const userInfoStr = 'tg:' + [user.id, fullName, user.username || ''].join(',');
             return btoa(encodeURIComponent(userInfoStr));
         }
-        if (typeof vkBridge !== 'undefined' && window.vkUser) {
+        if (window.authPlatform === 'vk' && window.vkUser) {
             const user = window.vkUser;
             const city = user.city?.title || 'не указан';
             const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
@@ -357,53 +395,36 @@ function initMapWithGeolocation() {
     });
 }
 
-// Инициализация VK Bridge
-if (typeof vkBridge !== 'undefined') {
-    vkBridge.send('VKWebAppInit').then(() => {
-        
-    }).catch((err) => {
-        
-    });
-    
-    // Получение данных пользователя VK
-    vkBridge.send('VKWebAppGetUserInfo').then((data) => {
-        window.vkUser = data;
-        
-        // Обновляем данные пользователя после загрузки
-        window.USER_ID = String(data.id);
-        window.USER_NAME = data.first_name + (data.last_name ? " " + data.last_name : "");
-        window.USER_UNAME = data.screen_name ? `vk.com/${data.screen_name}` : "";
-        
-    }).catch((err) => {
-        
-    });
-}
-
 ymaps.ready(async () => {
-    if (!TG_ACTIVE) {
-        let isVk = false;
-        if (typeof vkBridge !== 'undefined') {
-            try {
-                const info = await Promise.race([
-                    vkBridge.send('VKWebAppGetUserInfo'),
-                    new Promise((_, reject) => setTimeout(() => reject(), 1500))
-                ]);
-                if (info?.id) {
-                    isVk = true;
-                    window.vkUser = info;
-                    window.USER_ID = String(info.id);
-                    window.USER_NAME = info.first_name + (info.last_name ? " " + info.last_name : "");
-                    window.USER_UNAME = info.screen_name ? `vk.com/${info.screen_name}` : "";
-                }
-            } catch (e) {}
-        }
-        if (!isVk) {
-            showAdminLogin();
-            return;
-        }
+    // Wait for VK async auth if needed
+    if (!window.authPlatform && typeof vkBridge !== 'undefined') {
+        try {
+            await new Promise((resolve, reject) => {
+                window._onVkReady = resolve;
+                setTimeout(() => reject(), 1500);
+            });
+        } catch (e) {}
     }
-    
-    const userId = window.USER_ID;
+
+    // Try localStorage again (e.g. VK timed out)
+    if (!window.authPlatform) {
+        try {
+            const stored = JSON.parse(localStorage.getItem('3api_auth') || '{}');
+            if (stored.platform && stored.login) {
+                window.authPlatform = stored.platform;
+                window.authLogin = stored.login;
+                window.authPassword = stored.password || '';
+                window.authName = stored.name || stored.login;
+            }
+        } catch (e) {}
+    }
+
+    if (!window.authPlatform) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    const userId = window.authLogin;
 
     const center = await initMapWithGeolocation();
     map = new ymaps.Map("map", { center: center, zoom: 17, type: 'yandex#satellite', controls: [] });
@@ -488,96 +509,7 @@ const handleInitialAuth = async () => {
 };
 
 function showAdminLogin() {
-    const ws = $('welcomeScreen');
-    ws.style.cssText = 'display:flex;align-items:center;justify-content:center;background:rgba(10,11,15,0.95);';
-    ws.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:32px 28px;max-width:320px;width:100%;text-align:center;">
-            <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
-                <div class="input-wrapper" style="padding:3px;border-radius:14px;margin:0;"><input type="text" id="adminUserId" placeholder="ID" style="width:100%;padding:14px;border:none;font-size:16px;outline:none;background:transparent;color:#f5f7fa;font-family:inherit;"></div>
-                <div class="input-wrapper" style="padding:3px;border-radius:14px;margin:0;"><input type="password" id="adminToken" placeholder="Пароль" style="width:100%;padding:14px;border:none;font-size:16px;outline:none;background:transparent;color:#f5f7fa;font-family:inherit;"></div>
-            </div>
-            <button id="adminLoginBtn" class="btn-action" style="background:linear-gradient(180deg, rgba(52,199,89,0.9), rgba(40,160,70,0.85));">Войти</button>
-            <div id="adminLoginError" style="font-size:13px;color:#FF453A;display:none;"></div>
-        </div>
-    `;
-    $('adminLoginBtn').onclick = async () => {
-        const uid = $('adminUserId').value.trim();
-        const token = $('adminToken').value.trim();
-        const errEl = $('adminLoginError');
-        if (!uid || !token) {
-            errEl.textContent = 'Заполните оба поля';
-            errEl.style.display = 'block';
-            return;
-        }
-        errEl.style.display = 'none';
-        ADMIN_TOKEN = token;
-        window.USER_ID = uid;
-        window.USER_NAME = uid;
-
-        const btn = $('adminLoginBtn');
-        btn.textContent = 'Проверка...';
-        btn.disabled = true;
-
-        try {
-            await callYcFunction('list');
-            btn.textContent = 'Войти';
-            btn.disabled = false;
-            ymaps.ready(proceedAsAdmin);
-        } catch (e) {
-            ADMIN_TOKEN = '';
-            window.USER_ID = '';
-            window.USER_NAME = '';
-            btn.textContent = 'Войти';
-            btn.disabled = false;
-            const ws = $('welcomeScreen');
-            ws.innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 32px;text-align:center;">
-                    <span style="font-size:64px">🔒</span>
-                    <div style="font-size:20px;font-weight:700;color:#fff;">Доступ закрыт</div>
-                    <button onclick="showAdminLogin()" style="padding:12px 24px;border-radius:14px;border:0.5px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-size:15px;font-weight:600;cursor:pointer;">Назад</button>
-                </div>
-            `;
-        }
-    };
-}
-
-async function proceedAsAdmin() {
-    const center = await initMapWithGeolocation();
-    map = new ymaps.Map("map", { center, zoom: 17, type: 'yandex#satellite', controls: [] });
-    userLocPlacemark = new ymaps.Placemark([0,0], {}, { iconLayout: 'default#image', iconImageHref: getUserLocSvg(), iconImageSize: [16,16], iconImageOffset: [-8,-8], zIndex: 5000, visible: false });
-    map.geoObjects.add(userLocPlacemark);
-    initGeolocation();
-    map.events.add('click', e => {
-        if(isAddingInfo && activePoint && pendingInfoImage) {
-            placeInfoPoint([f6(e.get('coords')[0]), f6(e.get('coords')[1])], activePoint);
-            return;
-        }
-        if(isAdd && tempNewPointData) {
-            let coords = e.get('coords');
-            const newPoint = addP(coords, { ...tempNewPointData });
-            pushHistorySnapshot();
-            updateSaveState();
-            setActivePoint(newPoint, false);
-            startDrawingForPoint(newPoint, true);
-            tempNewPointData = null;
-        }
-    });
-    initColorDropdown('listColorDropdown', (h, n) => {
-        if(activeListPoint) {
-            pushHistorySnapshot();
-            const { point: p, card: c } = activeListPoint; p.color = n;
-            const btn = c.querySelector('.color-indicator-btn');
-            const cat = COLORS[n] || {};
-            btn.querySelector('.swatch').style.background = h;
-            btn.querySelector('.cat-label').textContent = cat.label || n;
-            if (p.line) { p.line.options.set('strokeColor', h); p.lineOutline.options.set('strokeColor', '#000000'); updI(p); } activeListPoint = null;
-            pushHistorySnapshot();
-            updateSaveState();
-        }
-    });
-    new Sortable($('pointsSortList'), { animation: 150, handle: '.sort-handle', ghostClass: 'sortable-ghost', onEnd: reorderPointsFromList, scroll: $('pointsSortList'), scrollSensitivity: 40, scrollSpeed: 15 });
-    localStorage.removeItem('gh_t_optimized');
-    handleInitialAuth();
+    window.location.href = 'login.html';
 }
 
 const refreshFileList = async () => {
@@ -781,7 +713,7 @@ const renderSettingsFileList = () => {
         });
         list.appendChild(el);
     }
-    const userId = window.USER_ID;
+    const userId = window.authLogin;
     $('settingsTitle').textContent = `${getFormattedCreatorName()} - маршрутов:${settingsRouteFiles.length}`;
     if (!list.dataset.dragScroll) {
         list.dataset.dragScroll = '1';
@@ -1071,7 +1003,7 @@ function copyToClipboard(text, msg) {
 function copyShareLink(platform) {
     const name = _shareRouteName || settingsRouteName || curRoute;
     if (!name) return;
-    const userId = window.USER_ID;
+    const userId = window.authLogin;
     const link = platform === 'vk'
         ? `https://vk.com/app54507759#m=${userId}-${name}`
         : `${TG_BOT_LINK}${userId}-${name}`;
@@ -1079,7 +1011,7 @@ function copyShareLink(platform) {
     copyToClipboard(link, "Ссылка скопирована в буфер обмена");
 }
 function copyCreatorLink(platform) {
-    const userId = window.USER_ID;
+    const userId = window.authLogin;
     const link = platform === 'vk'
         ? `https://vk.com/app54507759#m=${userId}`
         : `https://t.me/E_ia_bot?startapp=m=${userId}`;
@@ -1089,7 +1021,7 @@ function copyCreatorLink(platform) {
 const openInNavigator = () => {
     const routeKey = settingsRouteName || curRoute;
     if (!routeKey) return;
-    const userId = window.USER_ID ;
+    const userId = window.authLogin ;
     window.location.href = `navigator.html#m=${userId}-${routeKey}`;
 };
 const openSettingsModal = () => { refreshFileList(); toggleM('settingsModal'); };
