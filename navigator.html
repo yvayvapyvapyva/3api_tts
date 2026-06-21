@@ -153,6 +153,14 @@
     </div>
 </div>
 
+<div id="shockBar">
+    <span id="shockBarValue">0.0</span>
+    <span id="shockBarUnit">g</span>
+    <div id="shockBarTrack">
+        <div id="shockBarFill"></div>
+    </div>
+</div>
+
 <div id="toast"></div>
 
 <div id="speedSliderWrap" style="display:none;">
@@ -177,7 +185,8 @@ const APP = {
     _audioCache: new Map(),
     _commentMuted: false,
     _lastShockTime: 0,
-    _lastSpeedAlertTime: 0
+    _lastSpeedAlertTime: 0,
+    _motionTracked: false
 };
 
 const $ = id => document.getElementById(id);
@@ -489,13 +498,8 @@ function triggerSettingsSave() {
     const speedOn = $('triggerSpeedAlertToggle').checked;
     const speedAlert = speedOn ? parseInt($('triggerSpeedAlert').value) || 58 : 0;
     const speedAlertPhrase = $('triggerSpeedAlertPhrase').value.trim() || 'Превышена максимальная скорость!';
-    const wasShockEnabled = APP.navConfig.SHOCK_THRESHOLD > 0;
-    const nowShockEnabled = shock > 0;
     APP.navConfig.SHOCK_THRESHOLD = shock;
     APP.navConfig.SHOCK_PHRASE = phrase;
-    if (wasShockEnabled !== nowShockEnabled) {
-        if (nowShockEnabled) startShockDetection(); else stopShockDetection();
-    }
     APP.navConfig.SPEED_ALERT_THRESHOLD = speedAlert;
     APP.navConfig.SPEED_ALERT_PHRASE = speedAlertPhrase;
     triggerSettingsClose();
@@ -514,8 +518,8 @@ async function requestMotionPermission() {
     return true;
 }
 
-function startShockDetection() {
-    if (APP._shockListenerActive) return;
+function initMotionTracking() {
+    if (APP._motionTracked) return;
     requestMotionPermission().then(granted => {
         if (!granted) {
             APP.navConfig.SHOCK_THRESHOLD = 0;
@@ -523,14 +527,9 @@ function startShockDetection() {
             updateShockDisplay();
             return;
         }
-        APP._shockListenerActive = true;
-        window.addEventListener('devicemotion', onShock);
+        APP._motionTracked = true;
+        window.addEventListener('devicemotion', onMotion);
     });
-}
-
-function stopShockDetection() {
-    APP._shockListenerActive = false;
-    window.removeEventListener('devicemotion', onShock);
 }
 
 const SHOCK_DEBOUNCE = 3000;
@@ -540,19 +539,33 @@ function isAudioPlaying() {
            (!APP._commentAudio.paused && APP._commentAudio.currentTime > 0);
 }
 
-function onShock(event) {
-    const gThreshold = APP.navConfig.SHOCK_THRESHOLD;
-    if (gThreshold <= 0) return;
-    if (isAudioPlaying()) return;
+function onMotion(event) {
     const { x, y, z } = event.accelerationIncludingGravity;
     const total = Math.sqrt(x*x + y*y + z*z);
     const impactG = Math.abs(total - 9.8) / 9.8;
+    updateShockBar(impactG);
+    const gThreshold = APP.navConfig.SHOCK_THRESHOLD;
+    if (gThreshold <= 0) return;
+    if (isAudioPlaying()) return;
     if (impactG > gThreshold) {
         const now = Date.now();
         if (now - APP._lastShockTime < SHOCK_DEBOUNCE) return;
         APP._lastShockTime = now;
         playCommand(APP.navConfig.SHOCK_PHRASE || 'Сильный удар!').catch(() => {});
     }
+}
+
+function updateShockBar(g) {
+    const fill = $('shockBarFill');
+    const label = $('shockBarValue');
+    if (!fill || !label) return;
+    const pct = Math.min(100, (g / 5) * 100);
+    fill.style.width = pct + '%';
+    label.textContent = g.toFixed(1);
+    if (g < 0.5) fill.style.background = '#30D158';
+    else if (g < 1.5) fill.style.background = '#FFD700';
+    else if (g < 2.5) fill.style.background = '#FF9500';
+    else fill.style.background = '#FF3B30';
 }
 
 const SPEED_ALERT_DEBOUNCE = 5000;
@@ -1235,7 +1248,7 @@ ymaps3.ready.then(async () => {
 
     MenuModule.init(loadRouteFromJSON);
     $('loading').classList.add('hidden');
-    if (APP.navConfig.SHOCK_THRESHOLD > 0) startShockDetection();
+    initMotionTracking();
 
     document.addEventListener('click', function activateAudio() {
         APP.navAudio.muted = true;

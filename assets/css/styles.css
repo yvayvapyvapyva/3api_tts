@@ -589,6 +589,54 @@ html, body {
 }
 
 /* ============================================
+   Индикатор датчика удара (шок-бар)
+   ============================================ */
+#shockBar {
+    position: fixed;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9002;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,0,0,0.45);
+    padding: 4px 10px;
+    border-radius: 10px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    pointer-events: none;
+}
+#shockBarValue {
+    font-size: 12px;
+    font-weight: 800;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    min-width: 28px;
+    text-align: right;
+}
+#shockBarUnit {
+    font-size: 9px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.4);
+    margin-right: 2px;
+}
+#shockBarTrack {
+    width: 60px;
+    height: 4px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+    overflow: hidden;
+}
+#shockBarFill {
+    height: 100%;
+    width: 0%;
+    border-radius: 2px;
+    background: #30D158;
+    transition: width 0.08s linear;
+}
+
+/* ============================================
    Блок комментария
    ============================================ */
 #hud #commentBlock {
