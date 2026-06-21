@@ -91,7 +91,7 @@
 <script>
 const API_URL = 'https://functions.yandexcloud.net/d4e6qbc1mm9j44h0na3n';
 const AUTH_KEY = '3api_auth';
-const REDIRECT = new URLSearchParams(window.location.search).get('redirect') || 'navigator.html';
+const REDIRECT = new URLSearchParams(window.location.search).get('redirect') || '/';
 
 function saveAuth(platform, login, password, name) {
     localStorage.setItem(AUTH_KEY, JSON.stringify({ platform, login, password, name }));

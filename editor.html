@@ -986,7 +986,7 @@ function copyShareLink(platform) {
     const link = platform === 'vk'
         ? `https://vk.com/app54507759#m=${userId}-${name}`
         : platform === 'web'
-        ? `https://avtoinstruktor.website.yandexcloud.net/navigator.html#m=${userId}-${name}`
+        ? `https://avtoinstruktor.website.yandexcloud.net/#m=${userId}-${name}`
         : `${TG_BOT_LINK}${userId}-${name}`;
     toggleM('shareModal');
     copyToClipboard(link, "Ссылка скопирована в буфер обмена");
@@ -996,7 +996,7 @@ function copyCreatorLink(platform) {
     const link = platform === 'vk'
         ? `https://vk.com/app54507759#m=${userId}`
         : platform === 'web'
-        ? `https://avtoinstruktor.website.yandexcloud.net/navigator.html#m=${userId}`
+        ? `https://avtoinstruktor.website.yandexcloud.net/#m=${userId}`
         : `https://t.me/E_ia_bot?startapp=m=${userId}`;
     toggleM('creatorShareModal');
     copyToClipboard(link, "Ссылка скопирована в буфер обмена");
@@ -1005,7 +1005,7 @@ const openInNavigator = () => {
     const routeKey = settingsRouteName || curRoute;
     if (!routeKey) return;
     const userId = window.authLogin;
-    window.location.href = `navigator.html#m=${userId}-${routeKey}`;
+    window.location.href = `/#m=${userId}-${routeKey}`;
 };
 const openSettingsModal = () => { refreshFileList(); toggleM('settingsModal'); };
 const toggleM = id => { const m = $(id); m.style.display = (m.style.display === 'none' || !m.style.display) ? 'flex' : 'none'; };
