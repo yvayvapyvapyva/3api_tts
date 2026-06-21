@@ -573,7 +573,7 @@ function updateShockBar(g) {
     if (g > APP._shockDisplayG) {
         APP._shockDisplayG = g;
         APP._shockPeakTime = now;
-    } else if (now - APP._shockPeakTime > 500) {
+    } else if (now - APP._shockPeakTime > 1000) {
         APP._shockDisplayG += (g - APP._shockDisplayG) * 0.08;
         if (Math.abs(APP._shockDisplayG - g) < 0.01) {
             APP._shockDisplayG = g;
@@ -1268,13 +1268,13 @@ ymaps3.ready.then(async () => {
 
     MenuModule.init(loadRouteFromJSON);
     $('loading').classList.add('hidden');
+    ensureMotionTracking();
 
     document.addEventListener('click', function activateAudio() {
         APP.navAudio.muted = true;
         APP.navAudio.play().catch(() => {});
         APP.navAudio.pause();
         APP.navAudio.muted = false;
-        ensureMotionTracking();
     }, { once: true });
 }).catch(e => {
     showToast('Ошибка загрузки карты: ' + e.message, 'error', 5000);
