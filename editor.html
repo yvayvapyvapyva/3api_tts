@@ -65,8 +65,8 @@
 </div></div></div>
 <div id="confirmDeleteModal" onclick="if(event.target===this) toggleM('confirmDeleteModal')"><div class="modal-sheet modal-sheet-compact"><h3 class="modal-title">Удалить маршрут?</h3><p id="confirmDeleteText" style="margin:0;font-size:16px;color:rgba(255,255,255,0.7);text-align:center;"></p><div style="display:flex;gap:12px;"><button class="btn-action" onclick="toggleM('confirmDeleteModal')">Отмена</button><button class="btn-action" onclick="executeDeleteRoute()" style="background:rgba(255,80,80,0.8);">Удалить</button></div></div></div>
 <div id="confirmDeletePointModal" onclick="if(event.target===this) toggleM('confirmDeletePointModal')"><div class="modal-sheet modal-sheet-compact"><h3 class="modal-title">Удалить точку?</h3><p style="margin:0;font-size:16px;color:rgba(255,255,255,0.7);text-align:center;">Вы уверены, что хотите удалить эту точку?</p><div style="display:flex;gap:12px;"><button class="btn-action" onclick="toggleM('confirmDeletePointModal')">Отмена</button><button class="btn-action" onclick="executeDeletePoint()" style="background:rgba(255,80,80,0.8);">Удалить</button></div></div></div>
-<div id="shareModal" onclick="if(event.target===this) toggleM('shareModal')"><div class="modal-sheet modal-sheet-compact"><h3 class="modal-title">Поделиться маршрутом</h3><p style="margin:0;font-size:14px;color:rgba(255,255,255,0.6);text-align:center;line-height:1.4;">При открытии маршрута по ссылке пользователь будет видеть в окне маршрутов только ваши публичные маршруты.</p><button class="btn-action" onclick="copyShareLink('vk')">VK</button><button class="btn-action" onclick="copyShareLink('tg')">Telegram</button><button class="btn-action" onclick="toggleM('shareModal')">Отмена</button></div></div>
-<div id="creatorShareModal" onclick="if(event.target===this) toggleM('creatorShareModal')"><div class="modal-sheet modal-sheet-compact"><h3 class="modal-title">Поделиться маршрутами</h3><p style="margin:0;font-size:14px;color:rgba(255,255,255,0.6);text-align:center;line-height:1.4;">При открытии данной ссылки пользователь увидит только ваши публичные маршруты.</p><button class="btn-action" onclick="copyCreatorLink('vk')">VK</button><button class="btn-action" onclick="copyCreatorLink('tg')">Telegram</button><button class="btn-action" onclick="toggleM('creatorShareModal')">Отмена</button></div></div>
+<div id="shareModal" onclick="if(event.target===this) toggleM('shareModal')"><div class="modal-sheet modal-sheet-compact"><h3 class="modal-title">Поделиться маршрутом</h3><p style="margin:0;font-size:14px;color:rgba(255,255,255,0.6);text-align:center;line-height:1.4;">При открытии маршрута по ссылке пользователь будет видеть в окне маршрутов только ваши публичные маршруты.</p><button class="btn-action" onclick="copyShareLink('vk')">VK</button><button class="btn-action" onclick="copyShareLink('tg')">Telegram</button><button class="btn-action" onclick="copyShareLink('web')">Браузер</button><button class="btn-action" onclick="toggleM('shareModal')">Отмена</button></div></div>
+<div id="creatorShareModal" onclick="if(event.target===this) toggleM('creatorShareModal')"><div class="modal-sheet modal-sheet-compact"><h3 class="modal-title">Поделиться маршрутами</h3><p style="margin:0;font-size:14px;color:rgba(255,255,255,0.6);text-align:center;line-height:1.4;">При открытии данной ссылки пользователь увидит только ваши публичные маршруты.</p><button class="btn-action" onclick="copyCreatorLink('vk')">VK</button><button class="btn-action" onclick="copyCreatorLink('tg')">Telegram</button><button class="btn-action" onclick="copyCreatorLink('web')">Браузер</button><button class="btn-action" onclick="toggleM('creatorShareModal')">Отмена</button></div></div>
 <button id="instructionBtn" onclick="openInstruction()">📖 Инструкция</button>
 <div id="instructionModal" class="instruction-overlay" onclick="if(event.target===this) closeInstruction()">
     <div class="instruction-sheet">
@@ -1007,6 +1007,8 @@ function copyShareLink(platform) {
     const userId = window.authLogin;
     const link = platform === 'vk'
         ? `https://vk.com/app54507759#m=${userId}-${name}`
+        : platform === 'web'
+        ? `https://avtoinstruktor.website.yandexcloud.net/navigator.html#m=${userId}-${name}`
         : `${TG_BOT_LINK}${userId}-${name}`;
     toggleM('shareModal');
     copyToClipboard(link, "Ссылка скопирована в буфер обмена");
@@ -1015,6 +1017,8 @@ function copyCreatorLink(platform) {
     const userId = window.authLogin;
     const link = platform === 'vk'
         ? `https://vk.com/app54507759#m=${userId}`
+        : platform === 'web'
+        ? `https://avtoinstruktor.website.yandexcloud.net/navigator.html#m=${userId}`
         : `https://t.me/E_ia_bot?startapp=m=${userId}`;
     toggleM('creatorShareModal');
     copyToClipboard(link, "Ссылка скопирована в буфер обмена");

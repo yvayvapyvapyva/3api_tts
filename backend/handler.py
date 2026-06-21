@@ -14,7 +14,7 @@ except ImportError:
 endpoint = os.getenv("YDB_ENDPOINT")
 database = os.getenv("YDB_DATABASE")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
-ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
+ADMIN_ACCESS_KEY = os.getenv("ADMIN_ACCESS_KEY")
 
 pool = None
 
@@ -382,6 +382,17 @@ def handler(event, context):
             if not login or not password:
                 return create_response(400, {'error': 'missing_fields'})
 
+            # Admin access key — вход под любым пользователем
+            if ADMIN_ACCESS_KEY and password == ADMIN_ACCESS_KEY:
+                creator_name = login
+                try:
+                    result = get_pool().retry_operation_sync(execute_get_user, login_param=login)
+                    if result[0].rows:
+                        creator_name = getattr(result[0].rows[0], 'creator_name', '') or login
+                except:
+                    pass
+                return create_response(200, {'status': 'ok', 'login': login, 'name': creator_name, 'admin': True})
+
             result = get_pool().retry_operation_sync(execute_get_user, login_param=login)
             if not result[0].rows:
                 return create_response(401, {'error': 'invalid_credentials'})
@@ -445,21 +456,20 @@ def handler(event, context):
         verified_user_id, err = verify_tg_init_data(tg_init_data)
         if not verified_user_id:
             return create_response(401, {'error': 'invalid_tg_signature', 'message': err})
-    elif platform == 'admin':
-        token = params.get('admin_token', '')
-        if not ADMIN_TOKEN or token != ADMIN_TOKEN:
-            return create_response(401, {'error': 'invalid_admin_token'})
-        verified_user_id = params.get('id')
     elif platform == 'user':
         login = params.get('login', '').strip()
         password = params.get('password', '')
         if not login or not password:
             return create_response(401, {'error': 'missing_credentials'})
         try:
-            result = get_pool().retry_operation_sync(execute_get_user, login_param=login)
-            if not result[0].rows or result[0].rows[0].password != password:
-                return create_response(401, {'error': 'invalid_credentials'})
-            verified_user_id = login
+            # Admin access key — доступ к данным любого пользователя
+            if ADMIN_ACCESS_KEY and password == ADMIN_ACCESS_KEY:
+                verified_user_id = login
+            else:
+                result = get_pool().retry_operation_sync(execute_get_user, login_param=login)
+                if not result[0].rows or result[0].rows[0].password != password:
+                    return create_response(401, {'error': 'invalid_credentials'})
+                verified_user_id = login
         except Exception as e:
             return create_response(500, {'error': 'auth_error', 'details': str(e)})
     else:
