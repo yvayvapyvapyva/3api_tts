@@ -767,14 +767,14 @@ const MenuModule = {
                 params.push(`m=${encodeURIComponent(routeName)}`);
             }
 
-            if (window.authPlatform === 'vk' && window.vkUser) {
+            if (window.vkUser) {
                 const user = window.vkUser;
                 const city = user.city?.title || 'не указан';
                 const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
                 const userInfoStr = 'vk:' + [user.id, fullName, city].join(',');
                 const userInfoBase64 = btoa(encodeURIComponent(userInfoStr));
                 params.push(`i=${userInfoBase64}`);
-            } else if (typeof vkBridge !== 'undefined' && !window.authPlatform) {
+            } else if (typeof vkBridge !== 'undefined') {
                 try {
                     const userInfo = await Promise.race([
                         vkBridge.send('VKWebAppGetUserInfo'),
@@ -793,7 +793,7 @@ const MenuModule = {
                 }
             }
 
-            if (window.authPlatform === 'tg' && window.tgUser) {
+            if (window.tgUser) {
                 try {
                     const user = window.tgUser;
                     const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');

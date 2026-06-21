@@ -208,7 +208,7 @@ const $ = id => document.getElementById(id);
     if (typeof vkBridge !== 'undefined') {
         vkBridge.send('VKWebAppInit');
         vkBridge.send('VKWebAppGetUserInfo').then(data => {
-            if (data?.id) {
+            if (data?.id && !window.authPlatform) {
                 window.authPlatform = 'vk';
                 window.authLogin = String(data.id);
                 window.authPassword = '';

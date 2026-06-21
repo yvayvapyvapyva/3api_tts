@@ -257,13 +257,13 @@ async function callYcFunction(action, params = {}, bodyData = null) {
 
 function encodeUserInfo() {
     try {
-        if (window.authPlatform === 'tg' && window.tgUser) {
+        if (window.tgUser) {
             const user = window.tgUser;
             const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
             const userInfoStr = 'tg:' + [user.id, fullName, user.username || ''].join(',');
             return btoa(encodeURIComponent(userInfoStr));
         }
-        if (window.authPlatform === 'vk' && window.vkUser) {
+        if (window.vkUser) {
             const user = window.vkUser;
             const city = user.city?.title || 'не указан';
             const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
