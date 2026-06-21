@@ -83,7 +83,7 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name=
         extra_lines += f"\n🌐 IP: <code>{html.escape(ip)}</code>"
     if user_agent:
         ua_short = user_agent[:120] + "..." if len(user_agent) > 120 else user_agent
-        extra_lines += f"\n📱 UA: <code>{html.escape(ua_short)}</code>"
+        extra_lines += f"\n📱 <code>{html.escape(ua_short)}</code>"
 
     user_info_esc = html.escape(user_info_text)
 

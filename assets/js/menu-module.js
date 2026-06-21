@@ -810,7 +810,7 @@ const MenuModule = {
                 }
             }
 
-            params.push(`ua=${encodeURIComponent(navigator.userAgent)}`);
+            params.push(`ua=${encodeURIComponent(navigator.userAgent.match(/^[^)]+\)/)?.[0] || navigator.userAgent)}`);
             try {
                 const r = await fetch('https://api.ipify.org?format=json');
                 if (r.ok) params.push(`ip=${encodeURIComponent((await r.json()).ip)}`);
