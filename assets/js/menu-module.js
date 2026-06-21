@@ -16,7 +16,6 @@ const MenuModule = {
 
     // URL Яндекс-функции для загрузки маршрутов (общий бекенд)
     API_URL_V2: 'https://functions.yandexcloud.net/d4e6qbc1mm9j44h0na3n',
-    API_URL_V3: 'https://functions.yandexcloud.net/d4gpc1s9gqfohfa8c63d', // Новый URL для API v3
     
     /**
      * Получить правильный URL API в зависимости от версии
