@@ -4,14 +4,9 @@
     <meta charset="utf-8">
     <title>Автоинструктор</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <script src="assets/js/config.js"></script>
-    <script src="https://api-maps.yandex.ru/v3/?apikey=c0e28937-4e16-4d15-9b99-09a30cb8fc13&lang=ru_RU"></script>
-    <script src="https://unpkg.com/@vkontakte/vk-bridge@latest/dist/browser.min.js"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@yandex/ymaps3-default-ui-theme@latest/dist/esm/index.css">
-    <script src="assets/js/menu-module.js"></script>
-<style>
+    <style>
 .toggle-switch {
     position: relative;
     display: inline-block;
@@ -161,6 +156,59 @@
     <input type="range" id="speedSlider" min="30" max="150" value="90" step="30" orient="vertical">
 </div>
 
+<div id="triggerSettingsModal" onclick="if(event.target===this) triggerSettingsClose()">
+    <div class="modal-sheet modal-sheet-compact">
+        <h3 class="modal-title">Настройки оповещений</h3>
+
+        <div class="ts-section">
+            <div class="trigger-setting-row">
+                <div class="trigger-setting-header">
+                    <label class="toggle-switch">
+                        <input type="checkbox" class="toggle-input" id="triggerShockToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="label">Детекция ударов</span>
+                    <span class="value" id="triggerShockVal">Выкл</span>
+                </div>
+                <div id="triggerShockControls">
+                    <input type="range" id="triggerShock" min="0.5" max="3" value="1" step="0.25" oninput="updateShockDisplay()">
+                    <div style="padding:4px 16px 6px;">
+                        <input type="text" id="triggerShockPhrase" value="Сильный удар!" style="width:100%;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;box-sizing:border-box;border:none;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="trigger-setting-row">
+                <div class="trigger-setting-header">
+                    <label class="toggle-switch">
+                        <input type="checkbox" class="toggle-input" id="triggerSpeedAlertToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="label">Максимальная скорость</span>
+                </div>
+                <div id="triggerSpeedAlertControls">
+                    <div style="padding:4px 16px 6px;">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" id="triggerSpeedAlert" value="58" style="width:100%;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);color:#fff;font-size:16px;font-weight:600;outline:none;box-sizing:border-box;" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                    </div>
+                    <div style="padding:4px 16px 6px;">
+                        <input type="text" id="triggerSpeedAlertPhrase" value="Превышена максимальная скорость!" style="width:100%;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;box-sizing:border-box;border:none;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ts-actions">
+            <button class="btn-action ts-cancel" onclick="triggerSettingsClose()">Отмена</button>
+            <button class="btn-action ts-save" onclick="triggerSettingsSave()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<script src="assets/js/config.js"></script>
+<script src="https://api-maps.yandex.ru/v3/?apikey=c0e28937-4e16-4d15-9b99-09a30cb8fc13&lang=ru_RU"></script>
+<script src="https://unpkg.com/@vkontakte/vk-bridge@latest/dist/browser.min.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="assets/js/menu-module.js"></script>
 <script>
 const TTS_API_URL = 'https://functions.yandexcloud.net/d4erngid6s4rf5oinnp1';
 
@@ -1313,54 +1361,6 @@ ymaps3.ready.then(async () => {
     showToast('Ошибка загрузки карты: ' + e.message, 'error', 5000);
 });
 </script>
-
-<div id="triggerSettingsModal" onclick="if(event.target===this) triggerSettingsClose()">
-    <div class="modal-sheet modal-sheet-compact">
-        <h3 class="modal-title">Настройки оповещений</h3>
-
-        <div class="ts-section">
-            <div class="trigger-setting-row">
-                <div class="trigger-setting-header">
-                    <label class="toggle-switch">
-                        <input type="checkbox" class="toggle-input" id="triggerShockToggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <span class="label">Детекция ударов</span>
-                    <span class="value" id="triggerShockVal">Выкл</span>
-                </div>
-                <div id="triggerShockControls">
-                    <input type="range" id="triggerShock" min="0.5" max="3" value="1" step="0.25" oninput="updateShockDisplay()">
-                    <div style="padding:4px 16px 6px;">
-                        <input type="text" id="triggerShockPhrase" value="Сильный удар!" style="width:100%;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;box-sizing:border-box;border:none;">
-                    </div>
-                </div>
-            </div>
-
-            <div class="trigger-setting-row">
-                <div class="trigger-setting-header">
-                    <label class="toggle-switch">
-                        <input type="checkbox" class="toggle-input" id="triggerSpeedAlertToggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <span class="label">Максимальная скорость</span>
-                </div>
-                <div id="triggerSpeedAlertControls">
-                    <div style="padding:4px 16px 6px;">
-                        <input type="text" inputmode="numeric" pattern="[0-9]*" id="triggerSpeedAlert" value="58" style="width:100%;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);color:#fff;font-size:16px;font-weight:600;outline:none;box-sizing:border-box;" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-                    </div>
-                    <div style="padding:4px 16px 6px;">
-                        <input type="text" id="triggerSpeedAlertPhrase" value="Превышена максимальная скорость!" style="width:100%;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;box-sizing:border-box;border:none;">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="ts-actions">
-            <button class="btn-action ts-cancel" onclick="triggerSettingsClose()">Отмена</button>
-            <button class="btn-action ts-save" onclick="triggerSettingsSave()">Сохранить</button>
-        </div>
-    </div>
-</div>
 
 </body>
 </html>

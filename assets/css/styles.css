@@ -806,8 +806,9 @@ html, body {
 }
 
 .btn-action:active {
-    transform: scale(0.98);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: scale(0.96);
+    background: rgba(255,255,255,0.06);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Модалки редактора */
@@ -1109,24 +1110,12 @@ html, body {
     color: #f5f7fa;
     font-family: inherit;
 }
-.settings-share-btn {
-    width: auto;
-    align-self: stretch;
-    aspect-ratio: 1;
-    padding: 0;
-    font-size: 16px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0,122,255,0.2);
-    border-color: rgba(0,122,255,0.3);
-}
 #settingsTitle {
     font-size: 18px;
     font-weight: 700;
     margin-left: 4px;
 }
+.close-circle {
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -1906,6 +1895,20 @@ input, textarea, select {
     text-align: left;
     box-shadow: var(--shadow-soft), inset 0 0.5px 0 rgba(255, 255, 255, 0.1);
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-share-btn {
+    width: auto;
+    align-self: stretch;
+    aspect-ratio: 1;
+    padding: 0;
+    font-size: 16px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,122,255,0.2);
+    border-color: rgba(0,122,255,0.3);
 }
 
 .settings-tool-btn-green {

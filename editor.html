@@ -4,11 +4,6 @@
     <meta charset="utf-8">
     <title>Редактор маршрутов</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://api-maps.yandex.ru/2.1/?apikey=YANDEX_API_KEY&lang=ru_RU&suppressMapOpenBlock=true"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="assets/js/config.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -65,8 +60,8 @@
 </div></div></div>
 <div id="confirmDeleteModal" onclick="if(event.target===this) toggleM('confirmDeleteModal')"><div class="modal-sheet modal-sheet-compact"><h3 class="modal-title">Удалить маршрут?</h3><p id="confirmDeleteText" class="modal-desc-text" style="font-size:16px;"></p><div class="modal-actions"><button class="btn-action flex-1" onclick="toggleM('confirmDeleteModal')">Отмена</button><button class="btn-action btn-danger flex-1" onclick="executeDeleteRoute()">Удалить</button></div></div></div>
 <div id="confirmDeletePointModal" onclick="if(event.target===this) toggleM('confirmDeletePointModal')"><div class="modal-sheet modal-sheet-compact"><h3 class="modal-title">Удалить точку?</h3><p class="modal-desc-text" style="font-size:16px;">Вы уверены, что хотите удалить эту точку?</p><div class="modal-actions"><button class="btn-action flex-1" onclick="toggleM('confirmDeletePointModal')">Отмена</button><button class="btn-action btn-danger flex-1" onclick="executeDeletePoint()">Удалить</button></div></div></div>
-<div id="shareModal" onclick="if(event.target===this) toggleM('shareModal')"><div class="modal-sheet modal-sheet-compact"><h3 class="modal-title">Поделиться маршрутом</h3><p class="modal-desc-text">При открытии маршрута по ссылке пользователь будет видеть в окне маршрутов только ваши публичные маршруты.</p><div class="modal-actions"><button class="btn-action flex-1" onclick="copyShareLink('vk')">VK</button><button class="btn-action flex-1" onclick="copyShareLink('tg')">Telegram</button><button class="btn-action flex-1" onclick="copyShareLink('web')">Браузер</button><button class="btn-action flex-1" onclick="toggleM('shareModal')">Отмена</button></div></div></div>
-<div id="creatorShareModal" onclick="if(event.target===this) toggleM('creatorShareModal')"><div class="modal-sheet modal-sheet-compact"><h3 class="modal-title">Поделиться маршрутами</h3><p class="modal-desc-text">При открытии данной ссылки пользователь увидит только ваши публичные маршруты.</p><div class="modal-actions"><button class="btn-action flex-1" onclick="copyCreatorLink('vk')">VK</button><button class="btn-action flex-1" onclick="copyCreatorLink('tg')">Telegram</button><button class="btn-action flex-1" onclick="copyCreatorLink('web')">Браузер</button><button class="btn-action flex-1" onclick="toggleM('creatorShareModal')">Отмена</button></div></div></div>
+<div id="shareModal" onclick="if(event.target===this) toggleM('shareModal')"><div class="modal-sheet modal-sheet-compact"><h3 class="modal-title">Поделиться маршрутом</h3><p class="modal-desc-text">При открытии маршрута по ссылке пользователь будет видеть в окне маршрутов только ваши публичные маршруты.</p><div style="display:flex;flex-direction:column;gap:12px"><button class="btn-action flex-1" onclick="copyShareLink('vk')">VK</button><button class="btn-action flex-1" onclick="copyShareLink('tg')">Telegram</button><button class="btn-action flex-1" onclick="copyShareLink('web')">Браузер</button><button class="btn-action flex-1" onclick="toggleM('shareModal')">Отмена</button></div></div></div>
+<div id="creatorShareModal" onclick="if(event.target===this) toggleM('creatorShareModal')"><div class="modal-sheet modal-sheet-compact"><h3 class="modal-title">Поделиться маршрутами</h3><p class="modal-desc-text">При открытии данной ссылки пользователь увидит только ваши публичные маршруты.</p><div style="display:flex;flex-direction:column;gap:12px"><button class="btn-action flex-1" onclick="copyCreatorLink('vk')">VK</button><button class="btn-action flex-1" onclick="copyCreatorLink('tg')">Telegram</button><button class="btn-action flex-1" onclick="copyCreatorLink('web')">Браузер</button><button class="btn-action flex-1" onclick="toggleM('creatorShareModal')">Отмена</button></div></div></div>
 <button id="instructionBtn" onclick="openInstruction()">📖 Инструкция</button>
 <div id="instructionModal" class="instruction-overlay" onclick="if(event.target===this) closeInstruction()">
     <div class="instruction-sheet">
@@ -92,6 +87,11 @@
     </div>
 </div>
 
+<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://api-maps.yandex.ru/2.1/?apikey=YANDEX_API_KEY&lang=ru_RU&suppressMapOpenBlock=true"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="assets/js/config.js"></script>
 <script>
 (function (global) {
   const byId = (id) => document.getElementById(id);
