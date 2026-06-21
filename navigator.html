@@ -583,7 +583,7 @@ function updateShockBar(g) {
     const pct = ((clamped - 0.1) / (3 - 0.1)) * 100;
     fill.style.width = Math.min(100, pct) + '%';
     if (label) {
-        label.textContent = APP._shockDisplayG > 0.2 ? APP._shockDisplayG.toFixed(1) : '';
+        label.textContent = APP._shockDisplayG > 0.2 ? APP._shockDisplayG.toFixed(2) : '';
     }
     if (APP._shockDisplayG < 0.5) fill.style.background = '#30D158';
     else if (APP._shockDisplayG < 1.5) fill.style.background = '#FFD700';

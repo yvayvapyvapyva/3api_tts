@@ -593,7 +593,7 @@ html, body {
    ============================================ */
 #shockBar {
     position: fixed;
-    bottom: 0;
+    top: calc(8px + env(safe-area-inset-top));
     left: 0;
     right: 0;
     z-index: 9002;
@@ -608,15 +608,16 @@ html, body {
 }
 #shockBarValue {
     position: absolute;
-    bottom: -2px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 14px;
-    font-weight: 900;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    font-size: 10px;
+    font-weight: 800;
     color: #ffffff;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.5px;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
+    letter-spacing: 0.3px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.6);
+    line-height: 1;
 }
 
 /* ============================================
