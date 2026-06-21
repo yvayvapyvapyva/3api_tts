@@ -70,9 +70,10 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name=
             user_info_text = "ошибка декодирования"
 
     tg_link = f"https://t.me/E_ia_bot?startapp=m={user_id}-{m_val}"
+    user_id_esc = html.escape(str(user_id))
     display = html.escape(route_name or f"{user_id}-{m_val}")
-    route_line_editor = f'Ⓜ️ Маршрут: {user_id} — <a href="{tg_link}">{display}</a>'
-    route_line_nav = f'🆔 Маршрут: {user_id} — <a href="{tg_link}">{display}</a>'
+    route_line_editor = f'Ⓜ️ Маршрут: {user_id_esc} — <a href="{tg_link}">{display}</a>'
+    route_line_nav = f'🆔 Маршрут: {user_id_esc} — <a href="{tg_link}">{display}</a>'
 
     extra_lines = ""
     if ip:
@@ -81,12 +82,14 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name=
         ua_short = user_agent[:120] + "..." if len(user_agent) > 120 else user_agent
         extra_lines += f"\n📱 UA: <code>{html.escape(ua_short)}</code>"
 
+    user_info_esc = html.escape(user_info_text)
+
     if report_type == 'editor':
         message = (
             f"📊 <b>Загрузка маршрута в редакторе</b>{platform_icon}\n"
             f"🕒 <code>{now_moscow}</code>\n"
             f"{route_line_editor}\n"
-            f"👤 Пользователь: {user_info_text}"
+            f"👤 Пользователь: {user_info_esc}"
             f"{extra_lines}"
         )
     else:
@@ -94,7 +97,7 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name=
             f"📊 <b>Запуск навигатора</b>{platform_icon}\n"
             f"🕒 <code>{now_moscow}</code>\n"
             f"{route_line_nav}\n"
-            f"👤 Пользователь: {user_info_text}"
+            f"👤 Пользователь: {user_info_esc}"
             f"{extra_lines}"
         )
 
@@ -106,7 +109,7 @@ def send_report(user_id, m_val, i_val=None, report_type='navigator', route_name=
                 "text": message,
                 "parse_mode": "HTML"
             },
-            timeout=2 
+            timeout=5 
         )
     except Exception:
         pass
