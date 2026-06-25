@@ -694,6 +694,7 @@ const MenuModule = {
         
         // Обработчик клика
         document.getElementById('menuBtn').addEventListener('click', () => {
+            if (typeof closeInstruction === 'function') closeInstruction();
             const modal = document.getElementById('jsonModal');
             if (modal && modal.classList.contains('hidden')) {
                 this.show();
